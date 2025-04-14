@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Hệ thống Quản lý Nghiên cứu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+            color: white;
+        }
+        .nav-link {
+            color: rgba(255,255,255,.8);
+        }
+        .nav-link:hover {
+            color: white;
+        }
+        .nav-link.active {
+            background-color: #495057;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .stat-card {
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .dashboard-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .preview-table {
+            margin-top: 2rem;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+        .tab-content {
+            padding: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white">Admin Panel</h4>
+                    <hr class="text-white">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#users">
+                                <i class="bi bi-people"></i> Quản lý người dùng
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#research">
+                                <i class="bi bi-journal-text"></i> Quản lý nghiên cứu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#upload-excel">
+                                <i class="bi bi-file-earmark-excel"></i> Upload Danh sách
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#settings">
+                                <i class="bi bi-gear"></i> Cài đặt hệ thống
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Top Navigation -->
+                <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+                    <div class="container-fluid">
+                        <span class="navbar-brand">Admin Dashboard</span>
+                        <div class="d-flex align-items-center">
+                            <span class="me-3" id="admin-email"></span>
+                            <button class="btn btn-outline-danger" onclick="logout()">Đăng xuất</button>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-primary text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Tổng người dùng</h5>
+                                <h2 class="card-text" id="total-users">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Nghiên cứu đang chờ</h5>
+                                <h2 class="card-text" id="pending-research">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-warning text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Nghiên cứu đã duyệt</h5>
+                                <h2 class="card-text" id="approved-research">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Tổng RFID thẻ</h5>
+                                <h2 class="card-text" id="total-rfid">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Hoạt động gần đây</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Người dùng</th>
+                                        <th>Hành động</th>
+                                        <th>Chi tiết</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-log">
+                                    <!-- Activity logs will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Excel Section -->
+                <div class="card" id="upload-excel-section" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Upload Danh sách Lớp</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h5>Hướng dẫn:</h5>
+                            <ul>
+                                <li>File Excel phải có các cột: STT, Họ Tên, Ngày Sinh, Tỉnh, Giới Tính</li>
+                                <li>Định dạng hỗ trợ: .xlsx, .xls</li>
+                            </ul>
+                        </div>
+
+                        <form id="uploadForm" class="mb-4">
+                            <div class="mb-3">
+                                <label for="className" class="form-label">Tên lớp</label>
+                                <input type="text" class="form-control" id="className" required placeholder="Nhập tên lớp (VD: 12A1)">
+                            </div>
+                            <div class="mb-3">
+                                <label for="excelFile" class="form-label">Chọn file Excel</label>
+                                <input type="file" class="form-control" id="excelFile" accept=".xlsx,.xls" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </form>
+
+                        <div id="alertMessage" class="alert" style="display: none;"></div>
+
+                        <div class="preview-table">
+                            <h4>Xem trước dữ liệu</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped" id="previewTable">
+                                    <thead>
+                                        <tr>
+                                            <th>STT</th>
+                                            <th>Họ Tên</th>
+                                            <th>Ngày Sinh</th>
+                                            <th>Tỉnh</th>
+                                            <th>Giới Tính</th>
+                                            <th>Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="previewBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management Section -->
+                <div class="card" id="users-section" style="display: none;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Quản lý Người dùng</h5>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                            <i class="bi bi-plus"></i> Thêm người dùng
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Pending Users Column -->
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-warning text-white">
+                                        <h6 class="mb-0">Chờ duyệt <span class="badge bg-light text-dark" id="pendingCount">0</span></h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                            <table class="table table-hover mb-0">
+                                                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                                                    <tr>
+                                                        <th>Username</th>
+                                                        <th>Email</th>
+                                                        <th>Vai trò</th>
+                                                        <th>Thao tác</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="pendingUsersTable"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Users Column -->
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0">Đang hoạt động <span class="badge bg-light text-dark" id="activeCount">0</span></h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                            <table class="table table-hover mb-0">
+                                                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                                                    <tr>
+                                                        <th>Username</th>
+                                                        <th>Email</th>
+                                                        <th>Vai trò</th>
+                                                        <th>Thao tác</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="activeUsersTable"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Blocked Users Column -->
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0">Đã khóa <span class="badge bg-light text-dark" id="blockedCount">0</span></h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                            <table class="table table-hover mb-0">
+                                                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                                                    <tr>
+                                                        <th>Username</th>
+                                                        <th>Email</th>
+                                                        <th>Vai trò</th>
+                                                        <th>Thao tác</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="blockedUsersTable"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add User Modal -->
+                <div class="modal fade" id="addUserModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Thêm người dùng mới</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="addUserForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" class="form-control" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mật khẩu</label>
+                                        <input type="password" class="form-control" name="password" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Vai trò</label>
+                                        <select class="form-select" name="role" required>
+                                            <option value="researcher">Người đăng ký phiếu</option>
+                                            <option value="inspector">Người kiểm tra</option>
+                                            <option value="approver">Người duyệt phiếu</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="button" class="btn btn-primary" onclick="addUser()">Thêm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit User Modal -->
+                <div class="modal fade" id="editUserModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Chỉnh sửa người dùng</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editUserForm">
+                                    <input type="hidden" name="userId">
+                                    <div class="mb-3">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" class="form-control" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Vai trò</label>
+                                        <select class="form-select" name="role" required>
+                                            <option value="researcher">Người đăng ký phiếu</option>
+                                            <option value="inspector">Người kiểm tra</option>
+                                            <option value="approver">Người duyệt phiếu</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="button" class="btn btn-primary" onclick="updateUser()">Lưu</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script>
+        // Kiểm tra token khi tải trang
+        document.addEventListener('DOMContentLoaded', async function() {
+            const token = localStorage.getItem('access_token');
+            const userRole = localStorage.getItem('user_role');
+            
+            if (!token || userRole !== 'admin') {
+                window.location.href = '/';
+                return;
+            }
+
+            // Hiển thị email admin
+            const adminEmail = document.getElementById('admin-email');
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    adminEmail.textContent = data.email;
+                }
+            } catch (error) {
+                console.error('Error fetching admin info:', error);
+            }
+
+            // Load dashboard data và user data ngay khi vào trang
+            await loadDashboardData();
+            await loadUsers();
+            
+            // Hiển thị section mặc định (dashboard)
+            showSection('dashboard');
+        });
+
+        // Hàm đăng xuất
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_role');
+            document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            window.location.href = '/';
+        }
+
+        // Hàm load dữ liệu dashboard
+        async function loadDashboardData() {
+            const token = localStorage.getItem('access_token');
+            try {
+                const response = await fetch('/api/admin/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDashboardStats(data);
+                    updateActivityLog(data.activities);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Cập nhật thống kê
+        function updateDashboardStats(data) {
+            document.getElementById('total-users').textContent = data.totalUsers || 0;
+            document.getElementById('pending-research').textContent = data.pendingResearch || 0;
+            document.getElementById('approved-research').textContent = data.approvedResearch || 0;
+            document.getElementById('total-rfid').textContent = data.totalRfid || 0;
+        }
+
+        // Cập nhật log hoạt động
+        function updateActivityLog(activities = []) {
+            const tbody = document.getElementById('activity-log');
+            tbody.innerHTML = activities.map(activity => `
+                <tr>
+                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
+                    <td>${activity.username}</td>
+                    <td>${activity.action}</td>
+                    <td>${activity.details}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Xử lý upload Excel
+        document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                showAlert('Vui lòng đăng nhập lại', 'danger');
+                return;
+            }
+
+            const formData = new FormData();
+            const className = document.getElementById('className').value;
+            const file = document.getElementById('excelFile').files[0];
+            
+            if (!className || !file) {
+                showAlert('Vui lòng điền đầy đủ thông tin', 'danger');
+                return;
+            }
+
+            // Đọc file Excel và chuyển đổi thành dữ liệu JSON
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+
+                    // Bỏ qua dòng đầu tiên (header)
+                    const dataWithoutHeader = jsonData.slice(1);
+
+                    // Gửi dữ liệu lên server
+                    const response = await fetch('/api/admin/upload-class', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            className: className,
+                            data: dataWithoutHeader
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        showAlert('Upload thành công!', 'success');
+                        if (result.preview) {
+                            showPreview(result.preview);
+                        }
+                        // Reset form
+                        document.getElementById('uploadForm').reset();
+                    } else {
+                        throw new Error(result.detail || 'Upload thất bại');
+                    }
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    showAlert(error.message || 'Có lỗi xảy ra khi xử lý file', 'danger');
+                }
+            };
+
+            reader.onerror = function(error) {
+                console.error('Error reading file:', error);
+                showAlert('Có lỗi xảy ra khi đọc file', 'danger');
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Thêm event listener cho input file để xem trước
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+                    
+                    // Bỏ qua dòng header và hiển thị preview
+                    const dataWithoutHeader = jsonData.slice(1);
+                    showPreview(dataWithoutHeader);
+                } catch (error) {
+                    console.error('Error reading Excel file:', error);
+                    showAlert('Có lỗi khi đọc file Excel', 'danger');
+                }
+            };
+
+            reader.onerror = function(error) {
+                console.error('Error reading file:', error);
+                showAlert('Có lỗi khi đọc file', 'danger');
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Cập nhật hàm showPreview để hiển thị dữ liệu rõ ràng hơn
+        function showPreview(data) {
+            const tbody = document.getElementById('previewBody');
+            if (!data || !data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Không có dữ liệu</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map((row, index) => {
+                // Đảm bảo row là một mảng
+                if (!Array.isArray(row)) {
+                    console.warn('Invalid row data:', row);
+                    return '';
+                }
+                
+                return `
+                    <tr>
+                        <td>${row[0] || (index + 1)}</td>
+                        <td>${row[1] || ''}</td>
+                        <td>${row[2] || ''}</td>
+                        <td>${row[3] || ''}</td>
+                        <td>${row[4] || ''}</td>
+                        <td>${row[5] || ''}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Hàm hiển thị section
+        function showSection(sectionId) {
+            // Ẩn tất cả các section
+            document.querySelectorAll('.card').forEach(section => {
+                if (section.id && section.id.endsWith('-section')) {
+                    section.style.display = 'none';
+                }
+            });
+            
+            // Hiển thị section được chọn
+            if (sectionId === 'users') {
+                document.getElementById('users-section').style.display = 'block';
+            } else if (sectionId === 'upload-excel') {
+                document.getElementById('upload-excel-section').style.display = 'block';
+            }
+            
+            // Cập nhật trạng thái active của menu
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${sectionId}`) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Handle navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                showSection(targetId);
+                if (targetId === 'users') {
+                    loadUsers();  // Reload user data when switching to users section
+                }
+            });
+        });
+
+        // Load users data
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    // Store users globally for edit function
+                    window.allUsers = users;
+                    updateUserTables(users);
+                    // Hiển thị section users nếu đang ở tab users
+                    const usersSection = document.getElementById('users-section');
+                    if (document.querySelector('.nav-link[href="#users"]').classList.contains('active')) {
+                        usersSection.style.display = 'block';
+                    }
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi tải danh sách người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showAlert('Lỗi khi tải danh sách người dùng', 'danger');
+            }
+        }
+
+        // Hàm chuyển đổi vai trò thành tên hiển thị
+        function getRoleDisplayName(role) {
+            const roleNames = {
+                'researcher': 'Người đăng ký phiếu',
+                'inspector': 'Người kiểm tra',
+                'approver': 'Người duyệt phiếu',
+                'admin': 'Admin'
+            };
+            return roleNames[role] || role;
+        }
+
+        // Update user tables
+        function updateUserTables(users) {
+            const pendingUsers = users.filter(user => user.status === 'pending');
+            const activeUsers = users.filter(user => user.status === 'active');
+            const blockedUsers = users.filter(user => user.status === 'blocked');
+
+            document.getElementById('pendingCount').textContent = pendingUsers.length;
+            document.getElementById('activeCount').textContent = activeUsers.length;
+            document.getElementById('blockedCount').textContent = blockedUsers.length;
+
+            // Update pending users table
+            document.getElementById('pendingUsersTable').innerHTML = pendingUsers.map(user => `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${getRoleDisplayName(user.role)}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">
+                            <i class="bi bi-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectUser('${user.id}')">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="text-center">Không có người dùng chờ duyệt</td></tr>';
+
+            // Update active users table
+            document.getElementById('activeUsersTable').innerHTML = activeUsers.map(user => `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${getRoleDisplayName(user.role)}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="editUser('${user.id}')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="blockUser('${user.id}')">
+                            <i class="bi bi-lock"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser('${user.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="text-center">Không có người dùng hoạt động</td></tr>';
+
+            // Update blocked users table
+            document.getElementById('blockedUsersTable').innerHTML = blockedUsers.map(user => `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${getRoleDisplayName(user.role)}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="unblockUser('${user.id}')">
+                            <i class="bi bi-unlock"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="text-center">Không có người dùng bị khóa</td></tr>';
+        }
+
+        // Add new user
+        async function addUser(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showAlert('Thêm người dùng thành công', 'success');
+                    event.target.reset();
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi thêm người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error adding user:', error);
+                showAlert('Lỗi khi thêm người dùng', 'danger');
+            }
+        }
+
+        // Approve user
+        async function approveUser(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showAlert('Phê duyệt người dùng thành công', 'success');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi phê duyệt người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error approving user:', error);
+                showAlert('Lỗi khi phê duyệt người dùng', 'danger');
+            }
+        }
+
+        // Reject user
+        async function rejectUser(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showAlert('Từ chối người dùng thành công', 'success');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi từ chối người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error rejecting user:', error);
+                showAlert('Lỗi khi từ chối người dùng', 'danger');
+            }
+        }
+
+        // Block user
+        async function blockUser(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/block`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showAlert('Khóa người dùng thành công', 'success');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi khóa người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error blocking user:', error);
+                showAlert('Lỗi khi khóa người dùng', 'danger');
+            }
+        }
+
+        // Unblock user
+        async function unblockUser(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/unblock`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showAlert('Mở khóa người dùng thành công', 'success');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi mở khóa người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error unblocking user:', error);
+                showAlert('Lỗi khi mở khóa người dùng', 'danger');
+            }
+        }
+
+        // Delete user
+        async function deleteUser(userId) {
+            if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showAlert('Xóa người dùng thành công', 'success');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Lỗi khi xóa người dùng', 'danger');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showAlert('Lỗi khi xóa người dùng', 'danger');
+            }
+        }
+
+        // Thêm hàm hiển thị thông báo
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('alertMessage');
+            alertDiv.style.display = 'block';
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html> 

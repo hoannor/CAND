@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approver Dashboard - Hệ thống Quản lý Nghiên cứu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #2c3e50;
+            color: white;
+        }
+        .nav-link {
+            color: rgba(255,255,255,.8);
+        }
+        .nav-link:hover {
+            color: white;
+        }
+        .nav-link.active {
+            background-color: #34495e;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .stat-card {
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .action-buttons .btn {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white">Approver Panel</h4>
+                    <hr class="text-white">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#pending">
+                                <i class="bi bi-hourglass-split"></i> Chờ phê duyệt
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#approved">
+                                <i class="bi bi-check-circle"></i> Đã phê duyệt
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#rejected">
+                                <i class="bi bi-x-circle"></i> Đã từ chối
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#reports">
+                                <i class="bi bi-file-text"></i> Báo cáo
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Top Navigation -->
+                <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+                    <div class="container-fluid">
+                        <span class="navbar-brand">Approver Dashboard</span>
+                        <div class="d-flex align-items-center">
+                            <span class="me-3" id="user-email"></span>
+                            <button class="btn btn-outline-danger" onclick="logout()">Đăng xuất</button>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-warning text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Chờ phê duyệt</h5>
+                                <h2 class="card-text" id="pending-count">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Đã phê duyệt</h5>
+                                <h2 class="card-text" id="approved-count">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-danger text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Đã từ chối</h5>
+                                <h2 class="card-text" id="rejected-count">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Tổng số</h5>
+                                <h2 class="card-text" id="total-count">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Research List Section -->
+                <div class="card" id="research-section">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Danh sách nghiên cứu chờ phê duyệt</h5>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" onclick="filterResearch('pending')">
+                                Chờ phê duyệt
+                            </button>
+                            <button class="btn btn-outline-success" onclick="filterResearch('approved')">
+                                Đã phê duyệt
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="filterResearch('rejected')">
+                                Đã từ chối
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tiêu đề</th>
+                                        <th>Người nộp</th>
+                                        <th>Ngày nộp</th>
+                                        <th>Trạng thái</th>
+                                        <th>Người kiểm tra</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="research-list">
+                                    <!-- Research items will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Review -->
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết nghiên cứu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="research-details">
+                        <!-- Research details will be loaded here -->
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Nhận xét</label>
+                        <textarea class="form-control" id="comment" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-success" onclick="approveResearch()">Phê duyệt</button>
+                    <button type="button" class="btn btn-danger" onclick="rejectResearch()">Từ chối</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentResearchId = null;
+        let reviewModal = null;
+
+        // Khởi tạo khi tải trang
+        document.addEventListener('DOMContentLoaded', async function() {
+            const token = localStorage.getItem('access_token');
+            const userRole = localStorage.getItem('user_role');
+            
+            if (!token || userRole !== 'approver') {
+                window.location.href = '/login';
+                return;
+            }
+
+            reviewModal = new bootstrap.Modal(document.getElementById('reviewModal'));
+
+            try {
+                // Kiểm tra token và lấy thông tin user
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    logout();
+                    return;
+                }
+
+                const userData = await response.json();
+                document.getElementById('user-email').textContent = userData.email;
+
+                // Load dữ liệu dashboard và danh sách nghiên cứu
+                await loadDashboardData();
+                await loadResearchList('pending');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Không thể xác thực người dùng', 'danger');
+                logout();
+            }
+        });
+
+        // Hàm đăng xuất
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_role');
+            document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            window.location.href = '/login';
+        }
+
+        // Load dữ liệu dashboard
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/approver/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('pending-count').textContent = data.pendingCount || 0;
+                    document.getElementById('approved-count').textContent = data.approvedCount || 0;
+                    document.getElementById('rejected-count').textContent = data.rejectedCount || 0;
+                    document.getElementById('total-count').textContent = data.totalCount || 0;
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showAlert('Không thể tải dữ liệu dashboard', 'danger');
+            }
+        }
+
+        // Load danh sách nghiên cứu theo trạng thái
+        async function loadResearchList(status = 'pending') {
+            try {
+                const response = await fetch(`/api/approver/research?status=${status}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const researches = await response.json();
+                    const tbody = document.getElementById('research-list');
+                    tbody.innerHTML = researches.map(research => `
+                        <tr>
+                            <td>${research.title}</td>
+                            <td>${research.author}</td>
+                            <td>${new Date(research.submitted_at).toLocaleDateString()}</td>
+                            <td>
+                                <span class="badge bg-${getStatusBadge(research.status)}">
+                                    ${research.status}
+                                </span>
+                            </td>
+                            <td>${research.inspector || 'N/A'}</td>
+                            <td class="action-buttons">
+                                <button class="btn btn-primary btn-sm" onclick="viewResearch('${research._id}')">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                ${status === 'pending' ? `
+                                    <button class="btn btn-success btn-sm" onclick="approveResearch('${research._id}')">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="rejectResearch('${research._id}')">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="6" class="text-center">Không có nghiên cứu nào</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading research list:', error);
+                showAlert('Không thể tải danh sách nghiên cứu', 'danger');
+            }
+        }
+
+        // Lọc nghiên cứu theo trạng thái
+        function filterResearch(status) {
+            loadResearchList(status);
+            // Cập nhật active button
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Xem chi tiết nghiên cứu
+        async function viewResearch(id) {
+            try {
+                currentResearchId = id;
+                const response = await fetch(`/api/approver/research/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const research = await response.json();
+                    document.getElementById('research-details').innerHTML = `
+                        <h6>Tiêu đề</h6>
+                        <p>${research.title}</p>
+                        <h6>Mô tả</h6>
+                        <p>${research.description}</p>
+                        <h6>Người nộp</h6>
+                        <p>${research.author}</p>
+                        <h6>Ngày nộp</h6>
+                        <p>${new Date(research.submitted_at).toLocaleString()}</p>
+                        <h6>Nhận xét của người kiểm tra</h6>
+                        <p>${research.inspector_comment || 'Chưa có nhận xét'}</p>
+                    `;
+                    reviewModal.show();
+                }
+            } catch (error) {
+                console.error('Error loading research details:', error);
+                showAlert('Không thể tải chi tiết nghiên cứu', 'danger');
+            }
+        }
+
+        // Phê duyệt nghiên cứu
+        async function approveResearch() {
+            if (!currentResearchId) return;
+            try {
+                const response = await fetch(`/api/approver/research/${currentResearchId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        comment: document.getElementById('comment').value
+                    })
+                });
+                
+                if (response.ok) {
+                    showAlert('Đã phê duyệt nghiên cứu thành công', 'success');
+                    reviewModal.hide();
+                    await loadDashboardData();
+                    await loadResearchList('pending');
+                }
+            } catch (error) {
+                console.error('Error approving research:', error);
+                showAlert('Không thể phê duyệt nghiên cứu', 'danger');
+            }
+        }
+
+        // Từ chối nghiên cứu
+        async function rejectResearch() {
+            if (!currentResearchId) return;
+            try {
+                const response = await fetch(`/api/approver/research/${currentResearchId}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        comment: document.getElementById('comment').value
+                    })
+                });
+                
+                if (response.ok) {
+                    showAlert('Đã từ chối nghiên cứu', 'success');
+                    reviewModal.hide();
+                    await loadDashboardData();
+                    await loadResearchList('pending');
+                }
+            } catch (error) {
+                console.error('Error rejecting research:', error);
+                showAlert('Không thể từ chối nghiên cứu', 'danger');
+            }
+        }
+
+        // Hàm lấy màu badge theo trạng thái
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'pending': return 'warning';
+                case 'approved': return 'success';
+                case 'rejected': return 'danger';
+                case 'revision': return 'info';
+                default: return 'secondary';
+            }
+        }
+
+        // Hàm hiển thị thông báo
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html> 
