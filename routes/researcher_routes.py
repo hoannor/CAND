@@ -11,6 +11,11 @@ import os
 import shutil
 from pathlib import Path
 from pydantic import BaseModel
+import logging
+
+# Cấu hình logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/researcher",
@@ -177,7 +182,7 @@ async def update_research(
         if research["status"] != "rejected":
             raise HTTPException(status_code=400, detail="Chỉ có thể cập nhật nghiên cứu bị từ chối")
         
-        # Cập nhật thông tin nghiên cứu
+        # Cập nhật nghiên cứu
         update_data = {
             "title": title,
             "description": description,
@@ -227,14 +232,87 @@ async def update_research(
 @router.get("/my-class/students")
 async def get_class_students(current_user: UserInDB = Depends(get_current_user)):
     try:
+        # Kiểm tra role của user
+        logger.debug(f"User role: {current_user.role}")
+        if current_user.role != "researcher":
+            raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập")
+
+        # Lấy class_id từ user
+        logger.debug(f"User class_id: {current_user.class_id}")
+        if not current_user.class_id:
+            raise HTTPException(status_code=404, detail="Bạn không quản lý lớp nào")
+
+        class_id = current_user.class_id  # Sử dụng class_id thay vì managed_classes
+        logger.debug(f"Class ID to query: {class_id}")
+
         db = await get_database()
-        
-        # Lấy danh sách sinh viên của lớp hiện tại
-        students = await db.students.find({"class_id": current_user.class_id}).to_list(None)
-        
+
+        # Tìm thông tin lớp
+        class_info = await db.classes.find_one({"_id": ObjectId(class_id)})
+        if not class_info:
+            logger.error(f"Class not found for class_id: {class_id}")
+            raise HTTPException(status_code=404, detail="Không tìm thấy lớp")
+
+        logger.debug(f"Class info found: {class_info}")
+
+        # Lấy danh sách student_ids từ class_info
+        student_ids = class_info.get("student_ids", [])
+        logger.debug(f"Student IDs found: {student_ids}")
+
+        # Log từng student_id
+        for student_id in student_ids:
+            logger.debug(f"Processing student_id: {student_id}")
+
+        # Nếu không có student_ids, trả về danh sách rỗng
+        if not student_ids:
+            logger.debug("No students found for this class")
+            students = []
+        else:
+            # Chuyển đổi student_ids thành list các ObjectId
+            try:
+                student_ids = [ObjectId(student_id) for student_id in student_ids]
+                logger.debug(f"Converted student_ids to ObjectId: {student_ids}")
+            except Exception as e:
+                logger.error(f"Error converting student_ids to ObjectId: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Invalid student_ids format: {str(e)}")
+
+            # Tìm danh sách sinh viên dựa trên student_ids
+            students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
+            logger.debug(f"Students found: {students}")
+
+            # Log từng sinh viên
+            if not students:
+                logger.warning("No students found in the database for the given student_ids")
+            else:
+                for student in students:
+                    logger.debug(f"Student data: {student}")
+
+            # Chuyển đổi ObjectId thành string và chuẩn bị dữ liệu trả về
+            for student in students:
+                student["_id"] = str(student["_id"])
+                # Đảm bảo các trường cần thiết tồn tại, nếu không thì đặt giá trị mặc định
+                student.setdefault("ho_ten", "N/A")
+                student.setdefault("ngay_sinh", "N/A")
+                student.setdefault("tinh", "N/A")
+                student.setdefault("gioi_tinh", "N/A")
+                student.setdefault("ghi_chu", "")
+                student.setdefault("created_at", datetime.now())
+
+        # Chuyển đổi _id của class_info thành string
+        class_info["_id"] = str(class_info["_id"])
+
+        # Trả về kết quả
+        logger.debug(f"Final response: {{'class_info': {class_info}, 'students': {students}}}")
         return {
+            "class_info": {
+                "code": class_info.get("code", "N/A"),
+                "name": class_info.get("name", "N/A"),
+                "academic_year": class_info.get("academic_year", "N/A"),
+                "semester": class_info.get("semester", "N/A")
+            },
             "students": students
         }
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        logger.error(f"Error in get_class_students: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi: {str(e)}")

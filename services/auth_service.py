@@ -60,7 +60,7 @@ async def get_user_by_username(username: str) -> Optional[UserInDB]:
         
         if user_dict is not None:
             logger.debug(f"Found user in database: {username}")
-            # Chuyển đổi _id thành string
+            # Chuyển đổi _id thành string và đổi tên thành id để khớp với UserInDB
             user_dict["id"] = str(user_dict.pop("_id"))
             
             # Chuyển đổi class_id từ ObjectId sang string nếu có
@@ -166,8 +166,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     if user is None:
         raise credentials_exception
         
-    # Convert ObjectId to string if present
-    if user.get('class_id'):
-        user['class_id'] = str(user['class_id'])
+    # Chuyển đổi _id thành string và đổi tên thành id để khớp với UserInDB
+    user["id"] = str(user.pop("_id"))
+    
+    # Chuyển đổi class_id từ ObjectId sang string nếu có
+    if "class_id" in user and isinstance(user["class_id"], ObjectId):
+        user["class_id"] = str(user["class_id"])
+    
+    # Chuyển đổi managed_classes từ ObjectId sang string nếu có
+    if "managed_classes" in user and user["managed_classes"]:
+        user["managed_classes"] = [str(class_id) for class_id in user["managed_classes"]]
     
     return UserInDB(**user)

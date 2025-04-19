@@ -16,6 +16,12 @@
         .main-content {
             padding: 20px;
         }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .alert {
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
@@ -30,8 +36,7 @@
     </nav>
 
     <div class="container main-content">
-
-        <!-- Thêm section quản lý lớp học -->
+        <!-- Quản lý lớp học -->
         <div id="class-management-section" class="card mb-4" style="display: none;">
             <div class="card-header">
                 <h5 class="card-title mb-0">Quản lý lớp học</h5>
@@ -57,12 +62,13 @@
                     </div>
                 </div>
 
-                <!-- Danh sách học sinh -->
+                <!-- Danh sách sinh viên -->
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th>STT</th>
+                                <th>Student ID</th>
                                 <th>Họ và tên</th>
                                 <th>Ngày sinh</th>
                                 <th>Tỉnh</th>
@@ -72,7 +78,7 @@
                         </thead>
                         <tbody id="students-list">
                             <tr>
-                                <td colspan="6" class="text-center">Đang tải dữ liệu...</td>
+                                <td colspan="7" class="text-center">Đang tải dữ liệu...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -92,41 +98,40 @@
 
             try {
                 // Kiểm tra token và lấy thông tin user
-                const response = await fetch('/api/auth/me', {
+                const userResponse = await fetch('/api/auth/me', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
-                if (!response.ok) {
-                    logout();
-                    return;
+
+                if (!userResponse.ok) {
+                    throw new Error('Không thể xác thực người dùng');
                 }
 
-                const userData = await response.json();
-                document.getElementById('user-email').textContent = userData.email;
+                const userData = await userResponse.json();
+                if (userData.role !== 'researcher') {
+                    throw new Error('Bạn không có quyền truy cập');
+                }
 
-                // Load danh sách sinh viên
+                // Hiển thị email user
+                document.getElementById('user-email').textContent = userData.email || 'N/A';
+
+                // Load thông tin lớp và danh sách sinh viên
                 await loadClassInfo();
-                
+
             } catch (error) {
                 console.error('Error:', error);
-                showAlert('Không thể xác thực người dùng', 'danger');
-                logout();
+                showAlert(error.message || 'Đã xảy ra lỗi', 'danger');
+                setTimeout(logout, 2000);
             }
         });
 
-        function logout() {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user_role');
-            window.location.href = '/login';
-        }
-
         async function loadClassInfo() {
             try {
+                const token = localStorage.getItem('access_token');
                 const response = await fetch('/api/researcher/my-class/students', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
@@ -136,37 +141,56 @@
                 }
 
                 const data = await response.json();
-                console.log('Class data:', data);
+                console.log("API response:", data); // Debug: In toàn bộ response
 
                 // Hiển thị thông tin lớp
-                document.getElementById('class-code').textContent = data.class_info.code || 'N/A';
-                document.getElementById('class-name').textContent = data.class_info.name || 'N/A';
-                document.getElementById('academic-year').textContent = data.class_info.academic_year || 'N/A';
-                document.getElementById('semester').textContent = data.class_info.semester || 'N/A';
+                document.getElementById('class-code').textContent = data.class_info?.code || 'N/A';
+                document.getElementById('class-name').textContent = data.class_info?.name || 'N/A';
+                document.getElementById('academic-year').textContent = data.class_info?.academic_year || 'N/A';
+                document.getElementById('semester').textContent = data.class_info?.semester || 'N/A';
 
-                // Hiển thị danh sách học sinh
+                // Hiển thị danh sách sinh viên
                 const studentsList = document.getElementById('students-list');
                 if (!data.students || data.students.length === 0) {
-                    studentsList.innerHTML = '<tr><td colspan="6" class="text-center">Chưa có học sinh trong lớp</td></tr>';
+                    studentsList.innerHTML = '<tr><td colspan="7" class="text-center">Chưa có học sinh trong lớp</td></tr>';
+                    console.log("No students found in response.");
                 } else {
-                    studentsList.innerHTML = data.students.map((student, index) => `
-                        <tr>
-                            <td>${student.stt || (index + 1)}</td>
-                            <td>${student.ho_ten || ''}</td>
-                            <td>${student.ngay_sinh || ''}</td>
-                            <td>${student.tinh || ''}</td>
-                            <td>${student.gioi_tinh || ''}</td>
-                            <td>${student.ghi_chu || ''}</td>
-                        </tr>
-                    `).join('');
+                    // Debug: In danh sách sinh viên và student_ids
+                    console.log("Students data:", data.students);
+                    const studentIds = data.students.map(student => student._id);
+                    console.log("Student IDs:", studentIds);
+
+                    studentsList.innerHTML = data.students.map((student, index) => {
+                        // Debug: In từng sinh viên để kiểm tra
+                        console.log(`Student ${index + 1}:`, student);
+
+                        return `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${student._id || 'N/A'}</td>
+                                <td>${student.ho_ten || student.full_name || 'N/A'}</td>
+                                <td>${student.ngay_sinh || student.birth_date || 'N/A'}</td>
+                                <td>${student.tinh || student.province || 'N/A'}</td>
+                                <td>${student.gioi_tinh || student.gender || 'N/A'}</td>
+                                <td>${student.ghi_chu || student.note || 'N/A'}</td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
 
                 // Hiển thị section quản lý lớp
                 document.getElementById('class-management-section').style.display = 'block';
+
             } catch (error) {
                 console.error('Error loading class info:', error);
-                showAlert(error.message, 'danger');
+                showAlert(error.message || 'Không thể tải thông tin lớp', 'danger');
             }
+        }
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_role');
+            window.location.href = '/login';
         }
 
         function showAlert(message, type) {
@@ -182,4 +206,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
