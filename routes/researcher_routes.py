@@ -23,14 +23,8 @@ router = APIRouter(
     dependencies=[Depends(JWTBearer())]
 )
 
-class StudentResponse(BaseModel):
-    stt: str
-    ho_ten: str
-    ngay_sinh: str
-    tinh: str
-    gioi_tinh: str
-    ghi_chu: str = ""
-    created_at: datetime
+class CreateEventRequest(BaseModel):
+    student_ids: List[str]
 
 @router.get("/dashboard")
 async def get_researcher_dashboard(user_id: str = Depends(JWTBearer())):
@@ -242,7 +236,7 @@ async def get_class_students(current_user: UserInDB = Depends(get_current_user))
         if not current_user.class_id:
             raise HTTPException(status_code=404, detail="Bạn không quản lý lớp nào")
 
-        class_id = current_user.class_id  # Sử dụng class_id thay vì managed_classes
+        class_id = current_user.class_id
         logger.debug(f"Class ID to query: {class_id}")
 
         db = await get_database()
@@ -291,12 +285,8 @@ async def get_class_students(current_user: UserInDB = Depends(get_current_user))
             for student in students:
                 student["_id"] = str(student["_id"])
                 # Đảm bảo các trường cần thiết tồn tại, nếu không thì đặt giá trị mặc định
-                student.setdefault("ho_ten", "N/A")
-                student.setdefault("ngay_sinh", "N/A")
-                student.setdefault("tinh", "N/A")
-                student.setdefault("gioi_tinh", "N/A")
-                student.setdefault("ghi_chu", "")
-                student.setdefault("created_at", datetime.now())
+                student["ho_ten"] = student.get("ho_ten", "Không có tên")
+                student["created_at"] = student.get("created_at", datetime.now())
 
         # Chuyển đổi _id của class_info thành string
         class_info["_id"] = str(class_info["_id"])
@@ -315,4 +305,56 @@ async def get_class_students(current_user: UserInDB = Depends(get_current_user))
 
     except Exception as e:
         logger.error(f"Error in get_class_students: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi: {str(e)}")
+
+@router.post("/create-event")
+async def create_event(
+    request: CreateEventRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Tạo một event với danh sách sinh viên được chọn
+    """
+    try:
+        # Kiểm tra role của user
+        logger.debug(f"User role: {current_user.role}")
+        if current_user.role != "researcher":
+            raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập")
+
+        # Lấy class_id từ user
+        if not current_user.class_id:
+            raise HTTPException(status_code=404, detail="Bạn không quản lý lớp nào")
+        class_id = current_user.class_id
+
+        # Lấy danh sách student_ids từ request
+        student_ids = request.student_ids
+        logger.debug(f"Selected student IDs: {student_ids}")
+
+        # Kiểm tra nếu không có sinh viên nào được chọn
+        if not student_ids:
+            raise HTTPException(status_code=400, detail="Chưa chọn sinh viên nào")
+
+        # Kiểm tra nếu chọn quá 6 sinh viên
+        if len(student_ids) > 6:
+            raise HTTPException(status_code=400, detail="Chỉ được chọn tối đa 6 sinh viên")
+
+        db = await get_database()
+
+        # Tạo event
+        event = {
+            "event_id": class_id,
+            "researcher_id": current_user.id,
+            "selected_students": student_ids,
+            "created_at": datetime.now(),
+            "details": f"Đã chọn {len(student_ids)} sinh viên cho sự kiện"
+        }
+
+        # Lưu event vào database
+        result = await db.events.insert_one(event)
+        logger.debug(f"Event created with ID: {result.inserted_id}")
+
+        return {"message": f"Đã tạo sự kiện thành công với {len(student_ids)} sinh viên"}
+
+    except Exception as e:
+        logger.error(f"Error in create_event: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi: {str(e)}")

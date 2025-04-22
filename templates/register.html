@@ -233,7 +233,7 @@
                     classes.forEach(classItem => {
                         console.log('Adding class:', classItem); // Debug log
                         const option = document.createElement('option');
-                        option.value = classItem._id || classItem.id; // Thử cả hai trường hợp
+                        option.value = classItem._id; // Chỉ lấy _id
                         option.textContent = classItem.name;
                         classSelect.appendChild(option);
                     });
@@ -248,7 +248,7 @@
                     classes.forEach(classItem => {
                         const div = document.createElement('div');
                         div.className = 'class-item';
-                        const classId = classItem._id || classItem.id; // Thử cả hai trường hợp
+                        const classId = classItem._id; // Chỉ lấy _id
                         div.innerHTML = `
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" value="${classId}" id="class-${classId}">
@@ -267,4 +267,4 @@
         }
     </script>
 </body>
-</html> 
+</html>

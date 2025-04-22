@@ -16,18 +16,12 @@ router = APIRouter(
 @router.get("/public", response_model=List[ClassResponse])
 async def get_public_classes():
     """
-    Lấy danh sách lớp học cho form đăng ký (không yêu cầu xác thực)
+    Lấy danh sách tất cả lớp học cho form đăng ký (không yêu cầu xác thực)
     """
     db = await get_database()
     
-    # Lấy danh sách lớp chưa có researcher quản lý
-    query = {
-        "$or": [
-            {"researcher_id": None},
-            {"researcher_id": {"$exists": False}}
-        ]
-    }
-    classes = await db.classes.find(query).to_list(100)
+    # Lấy tất cả lớp học (không lọc)
+    classes = await db.classes.find().to_list(100)
     
     # Chuyển đổi ObjectId thành string
     formatted_classes = []
@@ -41,7 +35,8 @@ async def get_public_classes():
                 "academic_year": class_item.get("academic_year", ""),
                 "semester": int(class_item.get("semester", 0)),  # Chuyển đổi sang số nguyên, mặc định là 0
                 "description": class_item.get("description", ""),
-                "researcher_id": None,  # Luôn là None vì đây là các lớp chưa có researcher
+                "researcher_id": str(class_item["researcher_id"]) if class_item.get("researcher_id") else None,
+                "approver_ids": [str(approver_id) for approver_id in class_item.get("approver_ids", [])],
                 "students": [str(student_id) for student_id in class_item.get("students", [])],
                 "created_at": class_item.get("created_at", datetime.now()),
                 "updated_at": class_item.get("updated_at", datetime.now())
@@ -581,4 +576,4 @@ async def get_my_class_students(current_user: UserInDB = Depends(get_current_use
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
-        ) 
+        )

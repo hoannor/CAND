@@ -57,6 +57,16 @@ async def register(user_data: UserCreate):
                 detail="Không tìm thấy lớp học"
             )
     
+    # Nếu là approver và có managed_classes, kiểm tra các lớp tồn tại
+    if user_data.role == "approver" and user_data.managed_classes:
+        for class_id in user_data.managed_classes:
+            class_data = await db.classes.find_one({"_id": ObjectId(class_id)})
+            if not class_data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy lớp học với ID: {class_id}"
+                )
+    
     # Hash mật khẩu
     hashed_password = hash_password(user_data.password)
     
@@ -74,6 +84,10 @@ async def register(user_data: UserCreate):
     if user_data.class_id:
         user_dict["class_id"] = ObjectId(user_data.class_id)
     
+    # Chuyển đổi managed_classes thành ObjectId nếu có
+    if user_data.managed_classes:
+        user_dict["managed_classes"] = [ObjectId(class_id) for class_id in user_data.managed_classes]
+    
     # Lưu vào database
     result = await db.users.insert_one(user_dict)
     
@@ -84,6 +98,14 @@ async def register(user_data: UserCreate):
             {"$set": {"researcher_id": result.inserted_id}}
         )
     
+    # Cập nhật approver_ids cho các lớp được chọn bởi approver
+    if user_data.role == "approver" and user_data.managed_classes:
+        for class_id in user_data.managed_classes:
+            await db.classes.update_one(
+                {"_id": ObjectId(class_id)},
+                {"$addToSet": {"approver_ids": result.inserted_id}}
+            )
+    
     # Lấy user vừa tạo từ database để đảm bảo có đầy đủ thông tin
     created_user = await db.users.find_one({"_id": result.inserted_id})
     
@@ -92,6 +114,8 @@ async def register(user_data: UserCreate):
     del created_user["_id"]  # Xóa _id vì đã có id
     if "class_id" in created_user:
         created_user["class_id"] = str(created_user["class_id"])
+    if "managed_classes" in created_user:
+        created_user["managed_classes"] = [str(class_id) for class_id in created_user["managed_classes"]]
     
     return UserResponse(**created_user)
 
@@ -192,3 +216,23 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+@router.get("/classes/public")
+async def get_public_classes():
+    """
+    Lấy danh sách tất cả lớp học (không lọc)
+    """
+    db = await Database.get_database()
+    
+    # Lấy tất cả lớp học mà không áp dụng bộ lọc
+    classes = await db.classes.find().to_list(None)
+    
+    # Chuyển đổi ObjectId thành string
+    for class_item in classes:
+        class_item["_id"] = str(class_item["_id"])
+        if "researcher_id" in class_item:
+            class_item["researcher_id"] = str(class_item["researcher_id"])
+        if "approver_ids" in class_item:
+            class_item["approver_ids"] = [str(approver_id) for approver_id in class_item["approver_ids"]]
+    
+    return classes

@@ -113,4 +113,80 @@ async def inspect_research(research_id: str):
         
         return {"message": "Đã kiểm tra nghiên cứu thành công"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi kiểm tra nghiên cứu: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Lỗi khi kiểm tra nghiên cứu: {str(e)}")
+
+@router.get("/students")
+async def get_students_from_list_check():
+    """
+    Lấy danh sách tên, mã RFID và trạng thái của sinh viên từ collection list_check
+    Note: Bản ghi trong list_check sẽ tự động bị xóa sau 24 giờ kể từ approved_at
+    nhờ TTL Index được thiết lập trên trường approved_at.
+    """
+    db = await get_database()
+    
+    try:
+        # Lấy tất cả bản ghi từ list_check
+        list_checks = await db.list_check.find().to_list(None)
+        
+        # Tạo danh sách tất cả student_ids (không trùng lặp)
+        student_ids = set()
+        for record in list_checks:
+            if "students" in record:
+                for student_id in record["students"]:
+                    student_ids.add(student_id)
+        
+        # Chuyển đổi student_ids thành danh sách ObjectId
+        student_ids = [ObjectId(student_id) for student_id in student_ids]
+        
+        # Lấy thông tin sinh viên từ collection students
+        students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
+        
+        # Chuyển đổi ObjectId thành string và lấy tên, mã RFID, trạng thái
+        student_list = []
+        for student in students:
+            student["_id"] = str(student["_id"])
+            # Nếu sinh viên chưa có trạng thái, mặc định là "Trong trường"
+            if "status" not in student:
+                await db.students.update_one(
+                    {"_id": ObjectId(student["_id"])},
+                    {"$set": {"status": "Trong trường"}}
+                )
+                student["status"] = "Trong trường"
+            student_list.append({
+                "id": student["_id"],
+                "ho_ten": student.get("ho_ten", "Không có tên"),
+                "rfid_code": student.get("rfid_code", "Chưa có mã RFID"),
+                "status": student["status"]
+            })
+        
+        return student_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy danh sách sinh viên: {str(e)}")
+
+@router.post("/students/{student_id}/update-status")
+async def update_student_status(student_id: str, request: dict):
+    """
+    Cập nhật trạng thái của sinh viên
+    """
+    db = await get_database()
+    
+    try:
+        # Kiểm tra trạng thái hợp lệ
+        new_status = request.get("status")
+        if new_status not in ["Trong trường", "Đang ra ngoài"]:
+            raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ")
+
+        # Kiểm tra sinh viên tồn tại
+        student = await db.students.find_one({"_id": ObjectId(student_id)})
+        if not student:
+            raise HTTPException(status_code=404, detail="Sinh viên không tồn tại")
+        
+        # Cập nhật trạng thái
+        await db.students.update_one(
+            {"_id": ObjectId(student_id)},
+            {"$set": {"status": new_status, "updated_at": datetime.utcnow()}}
+        )
+        
+        return {"message": f"Cập nhật trạng thái thành công: {new_status}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi cập nhật trạng thái: {str(e)}")

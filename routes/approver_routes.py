@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from datetime import datetime
 from auth.jwt_bearer import JWTBearer
-from models.research import Research
-from models.user import UserResponse
 from database import get_database
 from bson import ObjectId
+from services.auth_service import get_current_user
+from models.user import UserInDB
 
 router = APIRouter(
     prefix="/api/approver",
@@ -13,136 +13,135 @@ router = APIRouter(
     dependencies=[Depends(JWTBearer())]
 )
 
+def convert_objectid_to_str(data):
+    """
+    Chuyển đổi tất cả các ObjectId trong dữ liệu thành string
+    """
+    if isinstance(data, dict):
+        return {k: convert_objectid_to_str(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_objectid_to_str(item) for item in data]
+    elif isinstance(data, ObjectId):
+        return str(data)
+    return data
+
 @router.get("/dashboard")
-async def get_approver_dashboard():
+async def get_approver_dashboard(current_user: UserInDB = Depends(get_current_user)):
     """
     Lấy thông tin dashboard cho approver
     """
     db = await get_database()
     
-    # Lấy thống kê nghiên cứu
-    total_research = await db.research.count_documents({})
-    pending_research = await db.research.count_documents({"status": "pending"})
-    approved_research = await db.research.count_documents({"status": "approved"})
-    rejected_research = await db.research.count_documents({"status": "rejected"})
+    # Đếm tổng số sự kiện thuộc các lớp mà approver quản lý
+    # Không chuyển managed_classes thành ObjectId, giữ nguyên dạng string
+    managed_classes = current_user.managed_classes  # Dạng list of strings
+    total_events = await db.events.count_documents({"event_id": {"$in": managed_classes}})
     
     # Lấy hoạt động gần đây
     recent_activities = await db.activities.find().sort("timestamp", -1).limit(10).to_list(10)
     
-    # Chuyển đổi ObjectId thành string trong activities
-    for activity in recent_activities:
-        if "research_id" in activity:
-            activity["research_id"] = str(activity["research_id"])
+    # Chuyển đổi tất cả ObjectId thành string
+    recent_activities = convert_objectid_to_str(recent_activities)
     
     return {
-        "totalResearch": total_research,
-        "pendingResearch": pending_research,
-        "approvedResearch": approved_research,
-        "rejectedResearch": rejected_research,
+        "totalEvents": total_events,
         "activities": recent_activities
     }
 
-@router.get("/research")
-async def get_research_list(status: Optional[str] = None):
+@router.get("/events")
+async def get_event_list(current_user: UserInDB = Depends(get_current_user)):
     """
-    Lấy danh sách nghiên cứu theo trạng thái
-    """
-    db = await get_database()
-    
-    # Xây dựng query dựa trên status
-    query = {}
-    if status:
-        query["status"] = status
-    
-    # Lấy danh sách nghiên cứu
-    research_list = await db.research.find(query).sort("created_at", -1).to_list(100)
-    
-    # Chuyển đổi ObjectId thành string
-    for research in research_list:
-        research["_id"] = str(research["_id"])
-        if "user_id" in research:
-            research["user_id"] = str(research["user_id"])
-    
-    return research_list
-
-@router.get("/research/{research_id}")
-async def get_research_detail(research_id: str):
-    """
-    Lấy chi tiết một nghiên cứu
+    Lấy danh sách sự kiện thuộc các lớp mà approver quản lý
     """
     db = await get_database()
     
-    try:
-        research = await db.research.find_one({"_id": ObjectId(research_id)})
-        if not research:
-            raise HTTPException(status_code=404, detail="Không tìm thấy nghiên cứu")
+    # Lấy danh sách managed_classes của approver, giữ nguyên dạng string
+    managed_classes = current_user.managed_classes  # Dạng list of strings
+    print(f"Managed classes for user {current_user.username}: {managed_classes}")  # Debug log
+    
+    # Lấy các sự kiện có event_id thuộc managed_classes
+    events = await db.events.find({"event_id": {"$in": managed_classes}}).sort("created_at", -1).to_list(100)
+    print(f"Events found: {events}")  # Debug log
+    
+    # Xử lý từng sự kiện để lấy thông tin lớp và sinh viên
+    for event in events:
+        event["_id"] = str(event["_id"])
+        event["researcher_id"] = str(event["researcher_id"])
         
-        # Chuyển đổi ObjectId thành string
-        research["_id"] = str(research["_id"])
-        if "user_id" in research:
-            research["user_id"] = str(research["user_id"])
-            
-        # Lấy thông tin người dùng
-        if "user_id" in research:
-            user = await db.users.find_one({"_id": ObjectId(research["user_id"])})
-            if user:
-                user["_id"] = str(user["_id"])
-                research["user"] = user
+        # Lấy thông tin lớp (event_id chính là class_id), chuyển event_id thành ObjectId để truy vấn classes
+        class_info = await db.classes.find_one({"_id": ObjectId(event["event_id"])})
+        event["class_name"] = class_info["name"] if class_info else "N/A"
+        print(f"Class info for event {event['_id']}: {class_info}")  # Debug log
         
-        return research
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy thông tin nghiên cứu: {str(e)}")
+        # Lấy danh sách sinh viên
+        student_ids = [ObjectId(student_id) for student_id in event["selected_students"]]
+        students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
+        event["student_names"] = [student["ho_ten"] for student in students if "ho_ten" in student]
+        print(f"Students for event {event['_id']}: {event['student_names']}")  # Debug log
+    
+    return events
 
-@router.post("/research/{research_id}/approve")
-async def approve_research(research_id: str):
+@router.post("/events/{event_id}/approve")
+async def approve_event(event_id: str, current_user: UserInDB = Depends(get_current_user)):
     """
-    Phê duyệt một nghiên cứu
+    Phê duyệt một sự kiện
     """
     db = await get_database()
     
-    # Kiểm tra nghiên cứu tồn tại
-    research = await db.research.find_one({"_id": ObjectId(research_id)})
-    if not research:
-        raise HTTPException(status_code=404, detail="Research not found")
+    # Kiểm tra sự kiện tồn tại
+    event = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     
-    # Cập nhật trạng thái nghiên cứu
-    await db.research.update_one(
-        {"_id": ObjectId(research_id)},
-        {"$set": {"status": "approved", "approved_at": datetime.now()}}
-    )
+    # Kiểm tra xem approver có quyền phê duyệt sự kiện này không
+    managed_classes = current_user.managed_classes  # Dạng list of strings
+    if event["event_id"] not in managed_classes:  # So sánh string với string
+        raise HTTPException(status_code=403, detail="Bạn không có quyền phê duyệt sự kiện này")
+    
+    # Lưu danh sách sinh viên vào collection list_check
+    await db.list_check.insert_one({
+        "event_id": event["event_id"],
+        "students": event["selected_students"],
+        "approved_at": datetime.now()
+    })
+    
+    # Xóa sự kiện khỏi collection events
+    await db.events.delete_one({"_id": ObjectId(event_id)})
     
     # Thêm hoạt động
     await db.activities.insert_one({
-        "action": "approve_research",
-        "research_id": ObjectId(research_id),
+        "action": "approve_event",
+        "event_id": event_id,
         "timestamp": datetime.now()
     })
     
-    return {"message": "Research approved successfully"}
+    return {"message": "Event approved successfully"}
 
-@router.post("/research/{research_id}/reject")
-async def reject_research(research_id: str):
+@router.post("/events/{event_id}/reject")
+async def reject_event(event_id: str, current_user: UserInDB = Depends(get_current_user)):
     """
-    Từ chối một nghiên cứu
+    Từ chối một sự kiện
     """
     db = await get_database()
     
-    # Kiểm tra nghiên cứu tồn tại
-    research = await db.research.find_one({"_id": ObjectId(research_id)})
-    if not research:
-        raise HTTPException(status_code=404, detail="Research not found")
+    # Kiểm tra sự kiện tồn tại
+    event = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     
-    # Cập nhật trạng thái nghiên cứu
-    await db.research.update_one(
-        {"_id": ObjectId(research_id)},
-        {"$set": {"status": "rejected", "rejected_at": datetime.now()}}
-    )
+    # Kiểm tra xem approver có quyền từ chối sự kiện này không
+    managed_classes = current_user.managed_classes  # Dạng list of strings
+    if event["event_id"] not in managed_classes:  # So sánh string với string
+        raise HTTPException(status_code=403, detail="Bạn không có quyền từ chối sự kiện này")
+    
+    # Xóa sự kiện khỏi collection events
+    await db.events.delete_one({"_id": ObjectId(event_id)})
     
     # Thêm hoạt động
     await db.activities.insert_one({
-        "action": "reject_research",
-        "research_id": ObjectId(research_id),
+        "action": "reject_event",
+        "event_id": event_id,
         "timestamp": datetime.now()
     })
     
-    return {"message": "Research rejected successfully"}
+    return {"message": "Event rejected successfully"}

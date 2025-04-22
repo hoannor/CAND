@@ -24,27 +24,8 @@
         .main-content {
             padding: 20px;
         }
-        .stat-card {
-            border-radius: 10px;
-            transition: transform 0.2s;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        .dashboard-section {
-            margin: 2rem 0;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-        .preview-table {
-            margin-top: 2rem;
-        }
-        .nav-pills .nav-link.active {
-            background-color: #0d6efd;
-        }
-        .tab-content {
-            padding: 20px 0;
+        .class-list, .student-list {
+            margin-top: 1rem;
         }
     </style>
 </head>
@@ -58,18 +39,8 @@
                     <hr class="text-white">
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#dashboard">
-                                <i class="bi bi-speedometer2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link" href="#users">
                                 <i class="bi bi-people"></i> Quản lý người dùng
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#research">
-                                <i class="bi bi-journal-text"></i> Quản lý nghiên cứu
                             </a>
                         </li>
                         <li class="nav-item">
@@ -78,8 +49,8 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#settings">
-                                <i class="bi bi-gear"></i> Cài đặt hệ thống
+                            <a class="nav-link active" href="#students">
+                                <i class="bi bi-person-lines-fill"></i> Quản lý sinh viên
                             </a>
                         </li>
                     </ul>
@@ -99,66 +70,6 @@
                     </div>
                 </nav>
 
-                <!-- Statistics Cards -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-primary text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Tổng người dùng</h5>
-                                <h2 class="card-text" id="total-users">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-success text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Nghiên cứu đang chờ</h5>
-                                <h2 class="card-text" id="pending-research">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-warning text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Nghiên cứu đã duyệt</h5>
-                                <h2 class="card-text" id="approved-research">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-info text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Tổng RFID thẻ</h5>
-                                <h2 class="card-text" id="total-rfid">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Activities -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Hoạt động gần đây</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Thời gian</th>
-                                        <th>Người dùng</th>
-                                        <th>Hành động</th>
-                                        <th>Chi tiết</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="activity-log">
-                                    <!-- Activity logs will be populated here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Upload Excel Section -->
                 <div class="card" id="upload-excel-section" style="display: none;">
                     <div class="card-header">
@@ -168,7 +79,7 @@
                         <div class="alert alert-info">
                             <h5>Hướng dẫn:</h5>
                             <ul>
-                                <li>File Excel phải có các cột: STT, Họ Tên, Ngày Sinh, Tỉnh, Giới Tính</li>
+                                <li>File Excel phải có cột: Họ Tên</li>
                                 <li>Định dạng hỗ trợ: .xlsx, .xls</li>
                             </ul>
                         </div>
@@ -193,12 +104,7 @@
                                 <table class="table table-striped" id="previewTable">
                                     <thead>
                                         <tr>
-                                            <th>STT</th>
                                             <th>Họ Tên</th>
-                                            <th>Ngày Sinh</th>
-                                            <th>Tỉnh</th>
-                                            <th>Giới Tính</th>
-                                            <th>Ghi chú</th>
                                         </tr>
                                     </thead>
                                     <tbody id="previewBody"></tbody>
@@ -293,6 +199,41 @@
                     </div>
                 </div>
 
+                <!-- Student Management Section -->
+                <div class="card" id="students-section">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Quản lý Sinh viên</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Class List -->
+                        <div class="class-list">
+                            <h5>Danh sách Lớp</h5>
+                            <div class="list-group" id="class-list">
+                                <!-- Classes will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Student List -->
+                        <div class="student-list">
+                            <h5>Danh sách Sinh viên</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Họ Tên</th>
+                                            <th>Mã RFID</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="student-list">
+                                        <!-- Students will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Add User Modal -->
                 <div class="modal fade" id="addUserModal" tabindex="-1">
                     <div class="modal-dialog">
@@ -371,6 +312,38 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Edit RFID Modal -->
+                <div class="modal fade" id="editRfidModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Chỉnh sửa mã RFID</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editRfidForm">
+                                    <input type="hidden" name="studentId">
+                                    <div class="mb-3">
+                                        <label class="form-label">Họ Tên</label>
+                                        <input type="text" class="form-control" name="hoTen" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mã RFID</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" name="rfidCode" placeholder="Nhập mã RFID">
+                                            <button class="btn btn-outline-primary" type="button" onclick="scanRfid()">Quét RFID</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="button" class="btn btn-primary" onclick="updateRfid()">Lưu</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -378,6 +351,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script>
+        let currentClassId = null;
+        let port = null;
+        let reader = null;
+
         // Kiểm tra token khi tải trang
         document.addEventListener('DOMContentLoaded', async function() {
             const token = localStorage.getItem('access_token');
@@ -404,12 +381,11 @@
                 console.error('Error fetching admin info:', error);
             }
 
-            // Load dashboard data và user data ngay khi vào trang
-            await loadDashboardData();
+            // Load user data ngay khi vào trang
             await loadUsers();
             
-            // Hiển thị section mặc định (dashboard)
-            showSection('dashboard');
+            // Hiển thị section mặc định (students)
+            showSection('students');
         });
 
         // Hàm đăng xuất
@@ -418,46 +394,6 @@
             localStorage.removeItem('user_role');
             document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             window.location.href = '/';
-        }
-
-        // Hàm load dữ liệu dashboard
-        async function loadDashboardData() {
-            const token = localStorage.getItem('access_token');
-            try {
-                const response = await fetch('/api/admin/dashboard', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    updateDashboardStats(data);
-                    updateActivityLog(data.activities);
-                }
-            } catch (error) {
-                console.error('Error loading dashboard data:', error);
-            }
-        }
-
-        // Cập nhật thống kê
-        function updateDashboardStats(data) {
-            document.getElementById('total-users').textContent = data.totalUsers || 0;
-            document.getElementById('pending-research').textContent = data.pendingResearch || 0;
-            document.getElementById('approved-research').textContent = data.approvedResearch || 0;
-            document.getElementById('total-rfid').textContent = data.totalRfid || 0;
-        }
-
-        // Cập nhật log hoạt động
-        function updateActivityLog(activities = []) {
-            const tbody = document.getElementById('activity-log');
-            tbody.innerHTML = activities.map(activity => `
-                <tr>
-                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                    <td>${activity.username}</td>
-                    <td>${activity.action}</td>
-                    <td>${activity.details}</td>
-                </tr>
-            `).join('');
         }
 
         // Xử lý upload Excel
@@ -561,16 +497,15 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Cập nhật hàm showPreview để hiển thị dữ liệu rõ ràng hơn
+        // Cập nhật hàm showPreview để chỉ hiển thị Họ Tên
         function showPreview(data) {
             const tbody = document.getElementById('previewBody');
             if (!data || !data.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Không có dữ liệu</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="1" class="text-center">Không có dữ liệu</td></tr>';
                 return;
             }
 
             tbody.innerHTML = data.map((row, index) => {
-                // Đảm bảo row là một mảng
                 if (!Array.isArray(row)) {
                     console.warn('Invalid row data:', row);
                     return '';
@@ -578,12 +513,7 @@
                 
                 return `
                     <tr>
-                        <td>${row[0] || (index + 1)}</td>
                         <td>${row[1] || ''}</td>
-                        <td>${row[2] || ''}</td>
-                        <td>${row[3] || ''}</td>
-                        <td>${row[4] || ''}</td>
-                        <td>${row[5] || ''}</td>
                     </tr>
                 `;
             }).join('');
@@ -591,21 +521,21 @@
 
         // Hàm hiển thị section
         function showSection(sectionId) {
-            // Ẩn tất cả các section
             document.querySelectorAll('.card').forEach(section => {
                 if (section.id && section.id.endsWith('-section')) {
                     section.style.display = 'none';
                 }
             });
             
-            // Hiển thị section được chọn
             if (sectionId === 'users') {
                 document.getElementById('users-section').style.display = 'block';
             } else if (sectionId === 'upload-excel') {
                 document.getElementById('upload-excel-section').style.display = 'block';
+            } else if (sectionId === 'students') {
+                document.getElementById('students-section').style.display = 'block';
+                loadClasses();
             }
             
-            // Cập nhật trạng thái active của menu
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
                 if (link.getAttribute('href') === `#${sectionId}`) {
@@ -621,10 +551,204 @@
                 const targetId = this.getAttribute('href').substring(1);
                 showSection(targetId);
                 if (targetId === 'users') {
-                    loadUsers();  // Reload user data when switching to users section
+                    loadUsers();
                 }
             });
         });
+
+        // Load classes
+        async function loadClasses() {
+            try {
+                const response = await fetch('/api/admin/classes', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const classes = await response.json();
+                    const classList = document.getElementById('class-list');
+                    classList.innerHTML = classes.map(cls => `
+                        <button class="list-group-item list-group-item-action" onclick="loadStudents('${cls.id}')">
+                            ${cls.name}
+                        </button>
+                    `).join('') || '<div class="list-group-item">Không có lớp nào</div>';
+                    document.getElementById('student-list').innerHTML = '<tr><td colspan="3" class="text-center">Chọn một lớp để xem danh sách sinh viên</td></tr>';
+                } else {
+                    showAlert('Không thể tải danh sách lớp', 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                showAlert('Không thể tải danh sách lớp', 'danger');
+            }
+        }
+
+        // Load students for a class
+        async function loadStudents(classId) {
+            currentClassId = classId;
+            try {
+                const response = await fetch(`/api/admin/classes/${classId}/students`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const students = await response.json();
+                    const studentList = document.getElementById('student-list');
+                    studentList.innerHTML = students.map(student => `
+                        <tr>
+                            <td>${student.ho_ten}</td>
+                            <td>${student.rfid_code || 'Chưa có'}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="editRfid('${student.id}', '${student.ho_ten}', '${student.rfid_code || ''}')">
+                                    <i class="bi bi-pencil"></i> Sửa RFID
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="3" class="text-center">Không có sinh viên nào</td></tr>';
+                } else {
+                    showAlert('Không thể tải danh sách sinh viên', 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showAlert('Không thể tải danh sách sinh viên', 'danger');
+            }
+        }
+
+        // Edit RFID
+        function editRfid(studentId, hoTen, rfidCode) {
+            const modal = new bootstrap.Modal(document.getElementById('editRfidModal'));
+            const form = document.getElementById('editRfidForm');
+            form.studentId.value = studentId;
+            form.hoTen.value = hoTen;
+            form.rfidCode.value = rfidCode;
+            modal.show();
+        }
+
+        // Scan RFID using Web Serial API
+
+        // Scan RFID using Web Serial API
+        async function scanRfid() {
+            try {
+                if (!('serial' in navigator)) {
+                    showAlert('Trình duyệt không hỗ trợ Web Serial API. Vui lòng sử dụng Chrome hoặc Edge.', 'danger');
+                    return;
+                }
+
+                if (!port) {
+                    console.log('Yêu cầu người dùng chọn cổng Serial...');
+                    port = await navigator.serial.requestPort({});
+                    if (!port) {
+                        showAlert('Không thể chọn cổng Serial. Vui lòng kiểm tra kết nối Arduino.', 'danger');
+                        return;
+                    }
+                    console.log('Đã chọn cổng Serial:', port);
+                    await port.open({ baudRate: 9600 });
+                    console.log('Đã mở cổng Serial thành công');
+                    reader = port.readable.getReader();
+                    console.log('Đã tạo reader để đọc dữ liệu');
+                }
+
+                showAlert('Đang chờ quét thẻ RFID... Vui lòng quét thẻ.', 'info');
+                console.log('Bắt đầu đọc dữ liệu từ Arduino...');
+
+                let attempts = 0;
+                const maxAttempts = 30; // Chờ tối đa 30 giây (1 lần đọc mỗi giây)
+                let accumulatedData = ''; // Tích lũy dữ liệu từ nhiều lần đọc
+
+                while (attempts < maxAttempts) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        console.log('Đọc hoàn tất, đóng reader');
+                        reader.releaseLock();
+                        reader = null;
+                        port = null;
+                        showAlert('Kết nối Serial đã đóng. Vui lòng thử lại.', 'danger');
+                        return;
+                    }
+
+                    if (value) {
+                        const text = new TextDecoder().decode(value);
+                        accumulatedData += text; // Tích lũy dữ liệu
+                        console.log('Dữ liệu nhận được (tích lũy):', accumulatedData);
+
+                        // Tìm dòng chứa "RFID:" trong dữ liệu tích lũy
+                        const lines = accumulatedData.split('\n');
+                        for (let line of lines) {
+                            line = line.trim(); // Loại bỏ ký tự trắng và xuống dòng
+                            if (line.includes('RFID:')) {
+                                const rfidCode = line.split('RFID:')[1]?.trim();
+                                if (rfidCode) {
+                                    console.log('Mã RFID tìm thấy:', rfidCode);
+                                    document.getElementById('editRfidForm').rfidCode.value = rfidCode;
+                                    showAlert(`Đã nhận mã RFID: ${rfidCode}`, 'success');
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    attempts++;
+                    console.log(`Lần thử ${attempts}/${maxAttempts}...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Chờ 1 giây trước khi đọc lại
+                }
+
+                showAlert('Không nhận được mã RFID. Vui lòng kiểm tra Arduino và thử lại.', 'danger');
+            } catch (error) {
+                console.error('Lỗi khi quét RFID:', error);
+                showAlert('Lỗi khi quét RFID: ' + error.message, 'danger');
+                if (reader) {
+                    reader.releaseLock();
+                    reader = null;
+                }
+                if (port) {
+                    await port.close();
+                    port = null;
+                }
+            }
+        }
+
+        // Update RFID
+        async function updateRfid() {
+            const form = document.getElementById('editRfidForm');
+            const studentId = form.studentId.value;
+            const rfidCode = form.rfidCode.value;
+
+            if (!rfidCode) {
+                showAlert('Vui lòng nhập hoặc quét mã RFID trước khi lưu.', 'danger');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    showAlert('Không tìm thấy token. Vui lòng đăng nhập lại.', 'danger');
+                    return;
+                }
+
+                const response = await fetch(`/api/admin/students/${studentId}/rfid`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ rfid_code: rfidCode })
+                });
+
+                if (response.ok) {
+                    showAlert('Lưu mã RFID thành công', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editRfidModal'));
+                    modal.hide();
+                    loadStudents(currentClassId); // Tải lại danh sách sinh viên để cập nhật giao diện
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Không thể lưu mã RFID', 'danger');
+                }
+            } catch (error) {
+                showAlert('Lỗi khi lưu mã RFID: ' + error.message, 'danger');
+            }
+        }
 
         // Load users data
         async function loadUsers() {
@@ -637,10 +761,8 @@
                 
                 if (response.ok) {
                     const users = await response.json();
-                    // Store users globally for edit function
                     window.allUsers = users;
                     updateUserTables(users);
-                    // Hiển thị section users nếu đang ở tab users
                     const usersSection = document.getElementById('users-section');
                     if (document.querySelector('.nav-link[href="#users"]').classList.contains('active')) {
                         usersSection.style.display = 'block';
@@ -676,7 +798,6 @@
             document.getElementById('activeCount').textContent = activeUsers.length;
             document.getElementById('blockedCount').textContent = blockedUsers.length;
 
-            // Update pending users table
             document.getElementById('pendingUsersTable').innerHTML = pendingUsers.map(user => `
                 <tr>
                     <td>${user.username}</td>
@@ -693,7 +814,6 @@
                 </tr>
             `).join('') || '<tr><td colspan="4" class="text-center">Không có người dùng chờ duyệt</td></tr>';
 
-            // Update active users table
             document.getElementById('activeUsersTable').innerHTML = activeUsers.map(user => `
                 <tr>
                     <td>${user.username}</td>
@@ -713,7 +833,6 @@
                 </tr>
             `).join('') || '<tr><td colspan="4" class="text-center">Không có người dùng hoạt động</td></tr>';
 
-            // Update blocked users table
             document.getElementById('blockedUsersTable').innerHTML = blockedUsers.map(user => `
                 <tr>
                     <td>${user.username}</td>
@@ -877,16 +996,17 @@
 
         // Thêm hàm hiển thị thông báo
         function showAlert(message, type) {
-            const alertDiv = document.getElementById('alertMessage');
+            const alertDiv = document.getElementById('alertMessage') || document.createElement('div');
+            alertDiv.id = 'alertMessage';
             alertDiv.style.display = 'block';
             alertDiv.className = `alert alert-${type}`;
             alertDiv.textContent = message;
+            document.querySelector('.main-content').prepend(alertDiv);
             
-            // Auto hide after 5 seconds
             setTimeout(() => {
                 alertDiv.style.display = 'none';
             }, 5000);
         }
     </script>
 </body>
-</html> 
+</html>

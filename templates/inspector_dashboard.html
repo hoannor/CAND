@@ -3,213 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inspector Dashboard - Hệ thống Quản lý Nghiên cứu</title>
+    <title>Inspector Dashboard - Quản lý sinh viên</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        .sidebar {
-            min-height: 100vh;
-            background-color: #2c3e50;
+        .navbar {
+            background-color: #1e2a44; /* Nền tối giống researcher_dashboard */
+        }
+        .navbar-brand {
+            color: white !important; /* Tiêu đề màu trắng */
+            font-size: 1.25rem;
+        }
+        .navbar .user-info {
+            color: white; /* Email người dùng màu trắng */
+        }
+        .navbar .btn-logout {
+            background-color: #007bff; /* Nút Đăng xuất màu xanh dương */
             color: white;
+            border: none;
         }
-        .nav-link {
-            color: rgba(255,255,255,.8);
-        }
-        .nav-link:hover {
-            color: white;
-        }
-        .nav-link.active {
-            background-color: #34495e;
+        .navbar .btn-logout:hover {
+            background-color: #0056b3; /* Hiệu ứng hover */
         }
         .main-content {
             padding: 20px;
         }
-        .stat-card {
-            border-radius: 10px;
-            transition: transform 0.2s;
+        .status-outside {
+            color: red; /* Trạng thái "Đang ra ngoài" màu đỏ */
         }
-        .stat-card:hover {
-            transform: translateY(-5px);
+        .status-inside {
+            color: green; /* Trạng thái "Trong trường" màu xanh */
         }
-        .action-buttons .btn {
-            margin-right: 5px;
+        .btn-scan {
+            background-color: #28a745; /* Nút Bắt đầu quét màu xanh lá */
+            color: white;
+            border: none;
         }
-        .research-details {
-            max-width: 800px;
-            margin: 0 auto;
+        .btn-scan:hover {
+            background-color: #218838; /* Hiệu ứng hover */
         }
-        .comment-box {
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            padding: 1rem;
-            margin-top: 1rem;
+        .btn-stop-scan {
+            background-color: #dc3545; /* Nút Dừng quét màu đỏ */
+            color: white;
+            border: none;
         }
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            padding: 0.25em 0.6em;
-            font-size: 0.75rem;
+        .btn-stop-scan:hover {
+            background-color: #c82333; /* Hiệu ứng hover */
         }
     </style>
 </head>
 <body>
     <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="p-3">
-                    <h4 class="text-white">Inspector Panel</h4>
-                    <hr class="text-white">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#dashboard">
-                                <i class="bi bi-speedometer2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#pending">
-                                <i class="bi bi-hourglass"></i> Chờ kiểm tra
-                                <span class="badge bg-warning rounded-pill notification-badge" id="pending-badge">0</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#checked">
-                                <i class="bi bi-check-circle"></i> Đã kiểm tra
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#revision">
-                                <i class="bi bi-pencil"></i> Cần sửa đổi
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#reports">
-                                <i class="bi bi-file-earmark-text"></i> Báo cáo
-                            </a>
-                        </li>
-                    </ul>
+        <!-- Top Navigation -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <span class="navbar-brand">Dashboard Inspector - Quản lý sinh viên</span>
+                <div class="d-flex align-items-center">
+                    <span class="user-info me-3" id="user-email"></span>
+                    <button class="btn btn-logout" onclick="logout()">Đăng xuất</button>
                 </div>
             </div>
+        </nav>
 
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                <!-- Top Navigation -->
-                <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-                    <div class="container-fluid">
-                        <span class="navbar-brand">Inspector Dashboard</span>
-                        <div class="d-flex align-items-center">
-                            <span class="me-3" id="user-email"></span>
-                            <button class="btn btn-outline-danger" onclick="logout()">Đăng xuất</button>
-                        </div>
-                    </div>
-                </nav>
-
-                <!-- Statistics Cards -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-warning text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Chờ kiểm tra</h5>
-                                <h2 class="card-text" id="to-check-count">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-success text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Đã kiểm tra</h5>
-                                <h2 class="card-text" id="checked-count">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-info text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Cần sửa đổi</h5>
-                                <h2 class="card-text" id="revision-count">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stat-card bg-primary text-white">
-                            <div class="card-body">
-                                <h5 class="card-title">Tổng số</h5>
-                                <h2 class="card-text" id="total-count">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Research List Section -->
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Danh sách nghiên cứu</h5>
-                        <div class="btn-group">
-                            <button class="btn btn-outline-primary" onclick="filterResearch('all')">
-                                Tất cả
-                            </button>
-                            <button class="btn btn-outline-warning" onclick="filterResearch('pending')">
-                                Chờ kiểm tra
-                            </button>
-                            <button class="btn btn-outline-success" onclick="filterResearch('checked')">
-                                Đã kiểm tra
-                            </button>
-                            <button class="btn btn-outline-info" onclick="filterResearch('revision')">
-                                Cần sửa đổi
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Tiêu đề</th>
-                                        <th>Người nộp</th>
-                                        <th>Ngày nộp</th>
-                                        <th>Lĩnh vực</th>
-                                        <th>Trạng thái</th>
-                                        <th>Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="research-list">
-                                    <!-- Research items will be loaded here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Scan RFID Button -->
+            <div class="mb-3">
+                <button class="btn btn-scan me-2" onclick="startRfidScan(true)">Bắt đầu quét RFID</button>
+                <button class="btn btn-stop-scan" onclick="stopRfidScan()" disabled>Dừng quét RFID</button>
             </div>
-        </div>
-    </div>
 
-    <!-- Modal for Research Details -->
-    <div class="modal fade" id="researchModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Chi tiết nghiên cứu</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <!-- Students List Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Danh sách sinh viên</h5>
                 </div>
-                <div class="modal-body">
-                    <div id="research-details">
-                        <!-- Research details will be loaded here -->
-                    </div>
-                    <div class="comment-box">
-                        <h6>Nhận xét của Inspector</h6>
-                        <textarea class="form-control mb-3" id="inspector-comment" rows="4" placeholder="Nhập nhận xét của bạn..."></textarea>
-                        <div class="d-flex justify-content-end">
-                            <button class="btn btn-success me-2" onclick="approveResearch()">
-                                <i class="bi bi-check-circle"></i> Phê duyệt
-                            </button>
-                            <button class="btn btn-warning me-2" onclick="requestRevision()">
-                                <i class="bi bi-pencil"></i> Yêu cầu sửa đổi
-                            </button>
-                            <button class="btn btn-danger" onclick="rejectResearch()">
-                                <i class="bi bi-x-circle"></i> Từ chối
-                            </button>
-                        </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tên sinh viên</th>
+                                    <th>Mã RFID</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-list">
+                                <!-- Student items will be loaded here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -218,20 +100,26 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentResearchId = null;
-        let researchModal = null;
+        let students = []; // Biến toàn cục để lưu danh sách sinh viên
+        let selectedPort = null; // Biến toàn cục để lưu cổng Serial đã chọn
+        let port = null; // Biến toàn cục để quản lý Web Serial
+        let reader = null; // Biến để đọc dữ liệu từ Serial
+        let isScanning = false; // Biến để theo dõi trạng thái quét
+        let isClosing = false; // Biến để ngăn xung đột khi đóng cổng Serial
+        let isPortOpen = false; // Biến để theo dõi trạng thái cổng Serial
+        let buffer = ''; // Biến để tích lũy dữ liệu từ Serial
 
         // Khởi tạo khi tải trang
         document.addEventListener('DOMContentLoaded', async function() {
             const token = localStorage.getItem('access_token');
             const userRole = localStorage.getItem('user_role');
+            console.log('Token:', token);  // Debug log
+            console.log('User role:', userRole);  // Debug log
             
             if (!token || userRole !== 'inspector') {
                 window.location.href = '/login';
                 return;
             }
-
-            researchModal = new bootstrap.Modal(document.getElementById('researchModal'));
 
             try {
                 // Kiểm tra token và lấy thông tin user
@@ -242,19 +130,17 @@
                 });
                 
                 if (!response.ok) {
+                    console.error('Failed to authenticate user:', response.status, response.statusText);
                     logout();
                     return;
                 }
 
                 const userData = await response.json();
+                console.log('User data:', userData);  // Debug log
                 document.getElementById('user-email').textContent = userData.email;
 
-                // Load dữ liệu dashboard và danh sách nghiên cứu
-                await loadDashboardData();
-                await loadResearchList('all');
-
-                // Xử lý navigation
-                setupNavigation();
+                // Load danh sách sinh viên
+                await loadStudentList();
                 
             } catch (error) {
                 console.error('Error:', error);
@@ -262,38 +148,6 @@
                 logout();
             }
         });
-
-        // Thiết lập navigation
-        function setupNavigation() {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Remove active class from all links
-                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-
-                    // Show appropriate section
-                    const target = this.getAttribute('href').substring(1);
-                    switch(target) {
-                        case 'pending':
-                            loadResearchList('pending');
-                            break;
-                        case 'checked':
-                            loadResearchList('checked');
-                            break;
-                        case 'revision':
-                            loadResearchList('revision');
-                            break;
-                        case 'reports':
-                            // TODO: Implement reports view
-                            break;
-                        default:
-                            loadResearchList('all');
-                    }
-                });
-            });
-        }
 
         // Hàm đăng xuất
         function logout() {
@@ -303,186 +157,340 @@
             window.location.href = '/login';
         }
 
-        // Load dữ liệu dashboard
-        async function loadDashboardData() {
+        // Load danh sách sinh viên
+        async function loadStudentList() {
             try {
-                const response = await fetch('/api/inspector/dashboard', {
+                const response = await fetch('/api/inspector/students', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                     }
                 });
                 
                 if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('to-check-count').textContent = data.toCheckCount || 0;
-                    document.getElementById('checked-count').textContent = data.checkedCount || 0;
-                    document.getElementById('revision-count').textContent = data.revisionCount || 0;
-                    document.getElementById('total-count').textContent = data.totalCount || 0;
-                    document.getElementById('pending-badge').textContent = data.toCheckCount || 0;
+                    students = await response.json();
+                    console.log('Students loaded:', students);  // Debug log
+                    const tbody = document.getElementById('student-list');
+                    tbody.innerHTML = students.map(student => {
+                        console.log('Rendering student:', student);  // Debug log
+                        const statusClass = student.status === "Đang ra ngoài" ? "status-outside" : "status-inside";
+                        return `
+                            <tr>
+                                <td>${student.ho_ten}</td>
+                                <td>${student.rfid_code}</td>
+                                <td class="${statusClass}">${student.status}</td>
+                            </tr>
+                        `;
+                    }).join('') || '<tr><td class="text-center" colspan="3">Không có sinh viên nào</td></tr>';
+                } else {
+                    console.error('Failed to load students:', response.status, response.statusText);
+                    showAlert('Không thể tải danh sách sinh viên', 'danger');
                 }
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
-                showAlert('Không thể tải dữ liệu dashboard', 'danger');
+                console.error('Error loading student list:', error);
+                showAlert('Không thể tải danh sách sinh viên', 'danger');
             }
         }
 
-        // Load danh sách nghiên cứu theo trạng thái
-        async function loadResearchList(status = 'all') {
-            try {
-                const response = await fetch(`/api/inspector/research?status=${status}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const researches = await response.json();
-                    const tbody = document.getElementById('research-list');
-                    tbody.innerHTML = researches.map(research => `
-                        <tr>
-                            <td>${research.title}</td>
-                            <td>${research.submitter_name}</td>
-                            <td>${new Date(research.submitted_at).toLocaleDateString()}</td>
-                            <td>${research.category}</td>
-                            <td>
-                                <span class="badge bg-${getStatusBadge(research.status)}">
-                                    ${research.status}
-                                </span>
-                            </td>
-                            <td class="action-buttons">
-                                <button class="btn btn-primary btn-sm" onclick="viewResearch('${research._id}')">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                ${research.file ? `
-                                    <a href="${research.file}" target="_blank" class="btn btn-info btn-sm">
-                                        <i class="bi bi-download"></i>
-                                    </a>
-                                ` : ''}
-                            </td>
-                        </tr>
-                    `).join('') || '<tr><td colspan="6" class="text-center">Không có nghiên cứu nào</td></tr>';
-                }
-            } catch (error) {
-                console.error('Error loading research list:', error);
-                showAlert('Không thể tải danh sách nghiên cứu', 'danger');
-            }
-        }
-
-        // Lọc nghiên cứu theo trạng thái
-        function filterResearch(status) {
-            loadResearchList(status);
-            // Cập nhật active button
-            document.querySelectorAll('.btn-group .btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-        }
-
-        // Xem chi tiết nghiên cứu
-        async function viewResearch(id) {
-            try {
-                currentResearchId = id;
-                const response = await fetch(`/api/inspector/research/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const research = await response.json();
-                    document.getElementById('research-details').innerHTML = `
-                        <h6>Tiêu đề</h6>
-                        <p>${research.title}</p>
-                        <h6>Người nộp</h6>
-                        <p>${research.submitter_name}</p>
-                        <h6>Mô tả</h6>
-                        <p>${research.description}</p>
-                        <h6>Lĩnh vực</h6>
-                        <p>${research.category}</p>
-                        <h6>Ngày nộp</h6>
-                        <p>${new Date(research.submitted_at).toLocaleString()}</p>
-                        <h6>Trạng thái</h6>
-                        <p><span class="badge bg-${getStatusBadge(research.status)}">${research.status}</span></p>
-                        ${research.file ? `
-                            <h6>Tệp đính kèm</h6>
-                            <p><a href="${research.file}" target="_blank">Tải xuống</a></p>
-                        ` : ''}
-                    `;
-                    
-                    // Load comment nếu có
-                    document.getElementById('inspector-comment').value = research.inspector_comment || '';
-                    
-                    researchModal.show();
-                }
-            } catch (error) {
-                console.error('Error loading research details:', error);
-                showAlert('Không thể tải chi tiết nghiên cứu', 'danger');
-            }
-        }
-
-        // Phê duyệt nghiên cứu
-        async function approveResearch() {
-            await updateResearchStatus('approved');
-        }
-
-        // Yêu cầu sửa đổi nghiên cứu
-        async function requestRevision() {
-            await updateResearchStatus('revision');
-        }
-
-        // Từ chối nghiên cứu
-        async function rejectResearch() {
-            await updateResearchStatus('rejected');
-        }
-
-        // Cập nhật trạng thái nghiên cứu
-        async function updateResearchStatus(status) {
-            if (!currentResearchId) return;
-
-            const comment = document.getElementById('inspector-comment').value;
-            if (!comment) {
-                showAlert('Vui lòng nhập nhận xét trước khi cập nhật trạng thái', 'warning');
+        // Hàm giải phóng tài nguyên Serial
+        async function cleanupSerialResources() {
+            if (isClosing) {
+                console.log('Đang đóng cổng Serial, bỏ qua yêu cầu mới.');
                 return;
             }
 
+            isClosing = true;
+            console.log('Bắt đầu giải phóng tài nguyên Serial...');
             try {
-                const response = await fetch(`/api/inspector/research/${currentResearchId}`, {
-                    method: 'PUT',
+                if (reader) {
+                    console.log('Đang giải phóng reader...');
+                    try {
+                        await reader.read().catch(() => {}); // Kiểm tra trạng thái reader
+                        reader.releaseLock();
+                        console.log('Reader đã được giải phóng thành công.');
+                    } catch (e) {
+                        if (e.name !== 'TypeError' && e.name !== 'InvalidStateError') {
+                            console.warn('Không thể giải phóng reader:', e.message);
+                        } else {
+                            console.log('Reader đã được giải phóng trước đó, bỏ qua lỗi:', e.message);
+                        }
+                    }
+                    reader = null;
+                }
+
+                if (port && isPortOpen) {
+                    console.log('Đang đóng cổng Serial...');
+                    try {
+                        await port.close();
+                        console.log('Cổng Serial đã được đóng thành công.');
+                        isPortOpen = false;
+                    } catch (e) {
+                        console.warn('Không thể đóng cổng Serial:', e.message);
+                    }
+                    port = null;
+                }
+            } catch (error) {
+                console.error('Lỗi khi giải phóng tài nguyên Serial:', error);
+            } finally {
+                console.log('Hoàn tất giải phóng tài nguyên Serial.');
+                isClosing = false;
+                reader = null;
+                port = null;
+                isPortOpen = false;
+                buffer = ''; // Đặt lại buffer
+            }
+        }
+
+        // Hàm kiểm tra trạng thái cổng Serial
+        async function checkPortStatus() {
+            if (port && isPortOpen) {
+                try {
+                    const portInfo = await port.getInfo();
+                    console.log('Cổng Serial đang mở:', portInfo);
+                    return true;
+                } catch (error) {
+                    console.warn('Cổng Serial không khả dụng:', error.message);
+                    await cleanupSerialResources();
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // Hàm cập nhật trạng thái giao diện
+        function updateButtonState() {
+            const scanButton = document.querySelector('.btn-scan');
+            const stopButton = document.querySelector('.btn-stop-scan');
+            if (isScanning) {
+                scanButton.setAttribute('disabled', true);
+                stopButton.removeAttribute('disabled');
+            } else {
+                scanButton.removeAttribute('disabled');
+                stopButton.setAttribute('disabled', true);
+            }
+        }
+
+        // Hàm bắt đầu quét RFID
+        async function startRfidScan(isUserInitiated = false) {
+            if (isScanning) {
+                showAlert('Đã quét RFID. Vui lòng dừng trước khi quét lại.', 'warning');
+                return;
+            }
+
+            console.log('Bắt đầu quét RFID... User initiated:', isUserInitiated);
+            try {
+                if (!('serial' in navigator)) {
+                    showAlert('Trình duyệt không hỗ trợ Web Serial API. Vui lòng sử dụng Chrome hoặc Edge.', 'danger');
+                    console.error('Trình duyệt không hỗ trợ Web Serial API.');
+                    return;
+                }
+
+                // Kiểm tra trạng thái cổng trước khi mở
+                if (!(await checkPortStatus())) {
+                    // Nếu đã có cổng Serial được chọn trước đó, sử dụng lại
+                    if (selectedPort) {
+                        console.log('Sử dụng lại cổng Serial đã chọn:', selectedPort);
+                        port = selectedPort;
+                    } else {
+                        // Yêu cầu user gesture để chọn cổng nếu chưa có
+                        if (!isUserInitiated) {
+                            showAlert('Vui lòng nhấn nút "Bắt đầu quét RFID" để chọn cổng Serial.', 'warning');
+                            console.log('Yêu cầu user gesture để chọn cổng Serial.');
+                            return;
+                        }
+                        console.log('Mở cổng Serial mới...');
+                        port = await navigator.serial.requestPort({});
+                        if (!port) {
+                            showAlert('Không thể chọn cổng Serial. Vui lòng kiểm tra kết nối Arduino.', 'danger');
+                            console.error('Không thể chọn cổng Serial.');
+                            return;
+                        }
+                        selectedPort = port; // Lưu cổng Serial đã chọn
+                        console.log('Cổng Serial đã được lưu:', selectedPort);
+                    }
+                    await port.open({ baudRate: 9600 });
+                    reader = port.readable.getReader();
+                    isPortOpen = true;
+                    console.log('Cổng Serial đã được mở thành công.');
+                }
+
+                isScanning = true;
+                updateButtonState();
+                showAlert('Đang chờ quét thẻ RFID... Vui lòng quét thẻ.', 'info');
+                console.log('Đang chờ dữ liệu từ cổng Serial...');
+                buffer = ''; // Đặt lại buffer
+
+                while (isScanning) {
+                    try {
+                        const { value, done } = await reader.read();
+                        console.log('Dữ liệu từ Serial:', { value, done });
+                        if (done || !isScanning) {
+                            console.log('Dừng quét: Đọc hoàn tất hoặc isScanning = false.');
+                            await cleanupSerialResources();
+                            isScanning = false;
+                            updateButtonState();
+                            showAlert('Kết nối Serial đã đóng.', 'danger');
+                            break;
+                        }
+
+                        if (value) {
+                            const text = new TextDecoder().decode(value);
+                            console.log('Dữ liệu thô nhận được:', text);
+                            buffer += text; // Tích lũy dữ liệu vào buffer
+
+                            // Xử lý buffer khi nhận được ký tự xuống dòng
+                            let lines = buffer.split('\n');
+                            buffer = lines.pop(); // Giữ lại phần chưa hoàn chỉnh trong buffer
+
+                            for (let line of lines) {
+                                line = line.trim();
+                                console.log('Dòng hoàn chỉnh:', line);
+                                if (line.includes('RFID:')) {
+                                    const rfidCode = line.split('RFID:')[1]?.trim();
+                                    if (rfidCode) {
+                                        console.log('Mã RFID nhận được:', rfidCode);
+                                        // Kiểm tra độ dài mã RFID (dự kiến 8 ký tự cho thẻ 4 byte)
+                                        if (rfidCode.length !== 8) {
+                                            showAlert('Mã RFID không hợp lệ: Độ dài không đúng (' + rfidCode.length + '/8 ký tự).', 'danger');
+                                            console.log('Mã RFID không hợp lệ: Độ dài không đúng:', rfidCode);
+                                            isScanning = false;
+                                            await cleanupSerialResources();
+                                            updateButtonState();
+                                            return;
+                                        }
+                                        // Dừng quét ngay sau khi nhận được mã RFID
+                                        isScanning = false;
+                                        await cleanupSerialResources();
+                                        updateButtonState();
+                                        handleRfidScan(rfidCode);
+                                        break;
+                                    }
+                                } else if (line) {
+                                    console.log('Dữ liệu không phải mã RFID, bỏ qua:', line);
+                                }
+                            }
+                            // Thoát vòng lặp nếu đã xử lý mã RFID
+                            if (!isScanning) break;
+                        }
+                    } catch (error) {
+                        console.error('Lỗi khi đọc dữ liệu từ Serial:', error);
+                        showAlert('Lỗi khi đọc dữ liệu từ Serial: ' + error.message, 'danger');
+                        await cleanupSerialResources();
+                        isScanning = false;
+                        updateButtonState();
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('Lỗi khi quét RFID:', error);
+                showAlert('Lỗi khi quét RFID: ' + error.message, 'danger');
+                await cleanupSerialResources();
+                isScanning = false;
+                updateButtonState();
+            }
+        }
+
+        // Hàm dừng quét RFID
+        async function stopRfidScan() {
+            if (!isScanning) {
+                showAlert('Không có quét RFID đang hoạt động.', 'warning');
+                console.log('Không có quét RFID đang hoạt động.');
+                return;
+            }
+
+            console.log('Dừng quét RFID...');
+            isScanning = false;
+            await cleanupSerialResources();
+            updateButtonState();
+            showAlert('Đã dừng quét RFID.', 'info');
+        }
+
+        // Hàm xử lý mã RFID sau khi quét
+        function handleRfidScan(rfidCode) {
+            console.log('Xử lý mã RFID:', rfidCode);
+            const student = students.find(s => s.rfid_code === rfidCode);
+            if (!student) {
+                showAlert('Thẻ không hợp lệ', 'danger');
+                console.log('Thẻ không hợp lệ:', rfidCode);
+                // Tự động quét lại nếu thẻ không hợp lệ
+                startRfidScan(false);
+                return;
+            }
+
+            // Hiển thị thông báo với tên sinh viên và nút Xác nhận/Từ chối
+            console.log('Phát hiện sinh viên:', student.ho_ten, 'Trạng thái:', student.status);
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info alert-dismissible fade show position-fixed top-0 end-0 m-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                Phát hiện sinh viên: ${student.ho_ten}<br>
+                Trạng thái hiện tại: ${student.status}<br>
+                <button class="btn btn-success btn-sm me-2" onclick="confirmStudent('${student.id}', '${student.ho_ten}', '${student.status}', this.parentElement)">Xác nhận</button>
+                <button class="btn btn-danger btn-sm me-2" onclick="rejectScan(this.parentElement)">Từ chối</button>
+                <button type="button" class="btn-close" onclick="rejectScan(this.parentElement)" aria-label="Close"></button>
+            `;
+            document.body.appendChild(alertDiv);
+        }
+
+        // Hàm từ chối quét (tự động quét lại)
+        function rejectScan(alertElement) {
+            console.log('Từ chối quét...');
+            alertElement.remove();
+            startRfidScan(false); // Tự động quét lại
+        }
+
+        // Hàm xác nhận sinh viên (chuyển đổi trạng thái và tự động quét lại)
+        async function confirmStudent(studentId, studentName, currentStatus, alertElement) {
+            console.log('Xác nhận sinh viên:', studentName, 'Trạng thái hiện tại:', currentStatus);
+            try {
+                // Xác định trạng thái mới
+                const newStatus = currentStatus === "Trong trường" ? "Đang ra ngoài" : "Trong trường";
+                console.log('Cập nhật trạng thái mới:', newStatus);
+
+                const response = await fetch(`/api/inspector/students/${studentId}/update-status`, {
+                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        status: status,
-                        inspector_comment: comment
-                    })
+                    body: JSON.stringify({ status: newStatus })
                 });
-                
+
                 if (response.ok) {
-                    showAlert('Đã cập nhật trạng thái nghiên cứu thành công', 'success');
-                    researchModal.hide();
-                    await loadDashboardData();
-                    await loadResearchList('all');
+                    showAlert(`Đã xác nhận: ${studentName} - ${newStatus}`, 'success');
+                    console.log('Cập nhật trạng thái thành công:', studentName, newStatus);
+                    // Cập nhật trạng thái trong danh sách sinh viên và giao diện
+                    const student = students.find(s => s.id === studentId);
+                    student.status = newStatus;
+                    const tbody = document.getElementById('student-list');
+                    tbody.innerHTML = students.map(student => {
+                        const statusClass = student.status === "Đang ra ngoài" ? "status-outside" : "status-inside";
+                        return `
+                            <tr>
+                                <td>${student.ho_ten}</td>
+                                <td>${student.rfid_code}</td>
+                                <td class="${statusClass}">${student.status}</td>
+                            </tr>
+                        `;
+                    }).join('') || '<tr><td class="text-center" colspan="3">Không có sinh viên nào</td></tr>';
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Không thể cập nhật trạng thái', 'danger');
+                    console.error('Lỗi khi cập nhật trạng thái:', error.detail);
                 }
             } catch (error) {
-                console.error('Error updating research status:', error);
-                showAlert('Không thể cập nhật trạng thái nghiên cứu', 'danger');
-            }
-        }
-
-        // Hàm lấy màu badge theo trạng thái
-        function getStatusBadge(status) {
-            switch (status) {
-                case 'pending': return 'warning';
-                case 'checked': return 'success';
-                case 'revision': return 'info';
-                case 'rejected': return 'danger';
-                default: return 'secondary';
+                showAlert('Lỗi khi cập nhật trạng thái: ' + error.message, 'danger');
+                console.error('Lỗi khi cập nhật trạng thái:', error);
+            } finally {
+                // Đóng thông báo và tự động quét lại
+                console.log('Đóng thông báo và tự động quét lại...');
+                alertElement.remove();
+                startRfidScan(false); // Tự động quét lại
             }
         }
 
         // Hàm hiển thị thông báo
         function showAlert(message, type) {
+            console.log('Hiển thị thông báo:', message, 'Loại:', type);
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
             alertDiv.style.zIndex = '9999';
@@ -491,8 +499,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
             document.body.appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 3000);
+            setTimeout(() => alertDiv.remove(), 5000);
         }
     </script>
 </body>
-</html> 
+</html>

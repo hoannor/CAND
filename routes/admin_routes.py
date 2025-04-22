@@ -41,6 +41,19 @@ class UserResponse(BaseModel):
     class_id: Optional[str]
     managed_classes: List[str]
 
+class ClassResponse(BaseModel):
+    id: str
+    name: str
+    total_students: int
+
+class StudentResponse(BaseModel):
+    id: str
+    ho_ten: str
+    rfid_code: Optional[str]
+
+class UpdateRfidRequest(BaseModel):
+    rfid_code: Optional[str]
+
 router = APIRouter(
     prefix="/api/admin",
     tags=["admin"],
@@ -353,15 +366,10 @@ async def upload_class_list(upload_data: UploadData):
         student_ids = []
         
         for row in upload_data.data:
-            if len(row) >= 5:  # Đảm bảo đủ số cột cần thiết
+            if len(row) >= 2:  # Chỉ cần cột Họ Tên (index 1)
                 student = {
                     "_id": ObjectId(),  # Tạo ID cho học sinh
-                    "stt": str(row[0]),
-                    "ho_ten": str(row[1]),
-                    "ngay_sinh": str(row[2]),
-                    "tinh": str(row[3]),
-                    "gioi_tinh": str(row[4]),
-                    "ghi_chu": str(row[5]) if len(row) > 5 else "",
+                    "ho_ten": str(row[1]),  # Chỉ lưu Họ Tên
                     "created_at": datetime.utcnow()
                 }
                 students.append(student)
@@ -387,4 +395,81 @@ async def upload_class_list(upload_data: UploadData):
         raise HTTPException(status_code=400, detail="Không có dữ liệu hợp lệ để import")
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/classes", response_model=List[ClassResponse])
+async def get_classes():
+    """
+    Lấy danh sách tất cả các lớp
+    """
+    try:
+        db = await get_database()
+        classes = await db.classes.find().to_list(None)
+        
+        formatted_classes = []
+        for cls in classes:
+            formatted_classes.append({
+                "id": str(cls["_id"]),
+                "name": cls["name"],
+                "total_students": cls["total_students"]
+            })
+        
+        return formatted_classes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy danh sách lớp: {str(e)}")
+
+@router.get("/classes/{class_id}/students", response_model=List[StudentResponse])
+async def get_students_in_class(class_id: str):
+    """
+    Lấy danh sách sinh viên trong một lớp
+    """
+    try:
+        db = await get_database()
+        
+        # Kiểm tra lớp tồn tại
+        class_obj = await db.classes.find_one({"_id": ObjectId(class_id)})
+        if not class_obj:
+            raise HTTPException(status_code=404, detail="Lớp không tồn tại")
+        
+        # Lấy danh sách student_ids
+        student_ids = [ObjectId(student_id) for student_id in class_obj["student_ids"]]
+        
+        # Lấy thông tin sinh viên
+        students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
+        
+        formatted_students = []
+        for student in students:
+            formatted_students.append({
+                "id": str(student["_id"]),
+                "ho_ten": student["ho_ten"],
+                "rfid_code": student.get("rfid_code")
+            })
+        
+        return formatted_students
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy danh sách sinh viên: {str(e)}")
+
+@router.put("/students/{student_id}/rfid")
+async def update_student_rfid(student_id: str, request: UpdateRfidRequest, current_user: dict = Depends(JWTBearer())):
+    try:
+        db = await get_database()
+        
+        # Kiểm tra sinh viên tồn tại
+        student = await db.students.find_one({"_id": ObjectId(student_id)})
+        if not student:
+            raise HTTPException(status_code=404, detail="Sinh viên không tồn tại")
+        
+        # Cập nhật mã RFID
+        update_data = {
+            "rfid_code": request.rfid_code,
+            "updated_at": datetime.utcnow()
+        }
+        
+        await db.students.update_one(
+            {"_id": ObjectId(student_id)},
+            {"$set": update_data}
+        )
+        
+        return {"message": "Lưu mã RFID thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lưu mã RFID: {str(e)}")
