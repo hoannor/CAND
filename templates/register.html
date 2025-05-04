@@ -7,25 +7,41 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f5f5f5;
+            background: url('/static/logo.png') no-repeat center center fixed;
+            background-size: cover;
             height: 100vh;
             display: flex;
             align-items: center;
             padding-top: 40px;
             padding-bottom: 40px;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Lớp phủ mờ */
+            backdrop-filter: blur(5px); /* Làm mờ hình nền */
+            z-index: 1;
         }
         .form-signup {
             width: 100%;
             max-width: 400px;
             padding: 15px;
             margin: auto;
+            position: relative;
+            z-index: 2; /* Đặt form phía trên lớp phủ */
         }
         .form-signup .form-floating:focus-within {
-            z-index: 2;
+            z-index: 3;
         }
         .card {
             border-radius: 1rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.9); /* Nền card hơi trong suốt */
         }
         .btn-primary {
             background-color: #0d6efd;

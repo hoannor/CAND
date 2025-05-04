@@ -6,12 +6,17 @@ from database import get_database
 from bson import ObjectId
 from services.auth_service import get_current_user
 from models.user import UserInDB
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/api/approver",
     tags=["approver"],
     dependencies=[Depends(JWTBearer())]
 )
+
+# Model để nhận danh sách sinh viên đã chỉnh sửa
+class ApproveEventRequest(BaseModel):
+    updated_students: List[str]
 
 def convert_objectid_to_str(data):
     """
@@ -33,7 +38,6 @@ async def get_approver_dashboard(current_user: UserInDB = Depends(get_current_us
     db = await get_database()
     
     # Đếm tổng số sự kiện thuộc các lớp mà approver quản lý
-    # Không chuyển managed_classes thành ObjectId, giữ nguyên dạng string
     managed_classes = current_user.managed_classes  # Dạng list of strings
     total_events = await db.events.count_documents({"event_id": {"$in": managed_classes}})
     
@@ -82,9 +86,9 @@ async def get_event_list(current_user: UserInDB = Depends(get_current_user)):
     return events
 
 @router.post("/events/{event_id}/approve")
-async def approve_event(event_id: str, current_user: UserInDB = Depends(get_current_user)):
+async def approve_event(event_id: str, request: ApproveEventRequest, current_user: UserInDB = Depends(get_current_user)):
     """
-    Phê duyệt một sự kiện
+    Phê duyệt một sự kiện với danh sách sinh viên đã chỉnh sửa
     """
     db = await get_database()
     
@@ -98,10 +102,24 @@ async def approve_event(event_id: str, current_user: UserInDB = Depends(get_curr
     if event["event_id"] not in managed_classes:  # So sánh string với string
         raise HTTPException(status_code=403, detail="Bạn không có quyền phê duyệt sự kiện này")
     
-    # Lưu danh sách sinh viên vào collection list_check
+    # Lấy danh sách sinh viên gốc và ánh xạ với student_names
+    student_ids = [ObjectId(student_id) for student_id in event["selected_students"]]
+    students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
+    student_name_to_id = {student["ho_ten"]: str(student["_id"]) for student in students if "ho_ten" in student}
+    
+    # Chuyển danh sách updated_students (tên sinh viên) thành danh sách ID
+    updated_student_ids = []
+    for student_name in request.updated_students:
+        student_id = student_name_to_id.get(student_name)
+        if student_id:
+            updated_student_ids.append(student_id)
+        else:
+            print(f"Warning: Student name {student_name} not found in original list.")  # Debug log
+    
+    # Lưu danh sách sinh viên đã chỉnh sửa vào collection list_check
     await db.list_check.insert_one({
         "event_id": event["event_id"],
-        "students": event["selected_students"],
+        "students": updated_student_ids,
         "approved_at": datetime.now()
     })
     
