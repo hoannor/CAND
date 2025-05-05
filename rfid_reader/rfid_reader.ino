@@ -111,15 +111,16 @@ void loop()
 void openGate()
 {
     Serial.println("Opening gate...");
-    gateServo.write(SERVO_OPEN_POS); // Mở cổng
+    gateServo.write(SERVO_OPEN_POS);
     gateOpen = true;
-    waitingForIR = true; // Bắt đầu chờ tín hiệu từ cảm biến IR
+    gateOpenTime = millis();
+    Serial.println("Gate opened. Servo position set to: " + String(SERVO_OPEN_POS));
 }
 
 void closeGate()
 {
     Serial.println("Closing gate...");
-    gateServo.write(SERVO_CLOSE_POS); // Đóng cổng
+    gateServo.write(SERVO_CLOSE_POS);
     gateOpen = false;
-    waitingForIR = false;
+    Serial.println("Gate closed. Servo position set to: " + String(SERVO_CLOSE_POS));
 }
