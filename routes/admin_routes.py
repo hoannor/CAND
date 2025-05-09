@@ -25,7 +25,7 @@ class UserUpdate(UserBase):
 
 class UploadData(BaseModel):
     className: str
-    data: List[List[Any]]
+    data: List[List[Any]]  # Giữ nguyên schema hiện tại
 
 class UserResponse(BaseModel):
     id: str
@@ -50,6 +50,7 @@ class StudentResponse(BaseModel):
     id: str
     ho_ten: str
     rfid_code: Optional[str]
+    class_name: Optional[str]
 
 class UpdateRfidRequest(BaseModel):
     rfid_code: Optional[str]
@@ -66,10 +67,8 @@ async def get_users():
         db = await get_database()
         users = await db.users.find().to_list(None)
         
-        # Chuyển đổi dữ liệu cho mỗi user
         formatted_users = []
         for user in users:
-            # Chuyển đổi _id và các ObjectId khác thành string
             user_dict = {
                 "id": str(user["_id"]),
                 "username": user["username"],
@@ -95,22 +94,19 @@ async def create_user(user: UserCreate):
     try:
         db = await get_database()
         
-        # Kiểm tra username và email đã tồn tại chưa
         if await db.users.find_one({"username": user.username}):
             raise HTTPException(status_code=400, detail="Username đã tồn tại")
         if await db.users.find_one({"email": user.email}):
             raise HTTPException(status_code=400, detail="Email đã tồn tại")
         
-        # Hash mật khẩu
         hashed_password = pwd_context.hash(user.password)
         
-        # Tạo user mới
         user_data = {
             "username": user.username,
             "email": user.email,
             "role": user.role,
             "hashed_password": hashed_password,
-            "status": "active",  # Admin tạo user thì mặc định active
+            "status": "active",
             "created_at": datetime.utcnow()
         }
         
@@ -124,18 +120,15 @@ async def update_user(user_id: str, user: UserUpdate):
     try:
         db = await get_database()
         
-        # Kiểm tra user tồn tại
         existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not existing_user:
             raise HTTPException(status_code=404, detail="User không tồn tại")
         
-        # Kiểm tra username và email đã tồn tại chưa (trừ user hiện tại)
         if await db.users.find_one({"username": user.username, "_id": {"$ne": ObjectId(user_id)}}):
             raise HTTPException(status_code=400, detail="Username đã tồn tại")
         if await db.users.find_one({"email": user.email, "_id": {"$ne": ObjectId(user_id)}}):
             raise HTTPException(status_code=400, detail="Email đã tồn tại")
         
-        # Cập nhật thông tin
         update_data = {
             "username": user.username,
             "email": user.email,
@@ -157,12 +150,10 @@ async def delete_user(user_id: str):
     try:
         db = await get_database()
         
-        # Kiểm tra user tồn tại
         existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not existing_user:
             raise HTTPException(status_code=404, detail="User không tồn tại")
         
-        # Xóa user
         await db.users.delete_one({"_id": ObjectId(user_id)})
         return {"message": "Xóa user thành công"}
     except Exception as e:
@@ -170,20 +161,15 @@ async def delete_user(user_id: str):
 
 @router.post("/users/{user_id}/approve")
 async def approve_user(user_id: str):
-    """
-    Duyệt tài khoản người dùng mới đăng ký
-    """
     try:
         db = await get_database()
         
-        # Kiểm tra định dạng user_id hợp lệ
         if not ObjectId.is_valid(user_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID người dùng không hợp lệ"
             )
             
-        # Kiểm tra user tồn tại
         existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not existing_user:
             raise HTTPException(
@@ -191,14 +177,12 @@ async def approve_user(user_id: str):
                 detail="User không tồn tại"
             )
         
-        # Kiểm tra trạng thái hiện tại
         if existing_user.get("status") != "pending":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Chỉ có thể duyệt tài khoản đang ở trạng thái chờ duyệt"
             )
         
-        # Cập nhật trạng thái
         update_result = await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {
@@ -215,7 +199,6 @@ async def approve_user(user_id: str):
                 detail="Không thể cập nhật trạng thái user"
             )
         
-        # Ghi log hoạt động
         await db.activities.insert_one({
             "action": "approve_user",
             "user_id": ObjectId(user_id),
@@ -233,12 +216,10 @@ async def reject_user(user_id: str):
     try:
         db = await get_database()
         
-        # Kiểm tra user tồn tại
         existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not existing_user:
             raise HTTPException(status_code=404, detail="User không tồn tại")
         
-        # Xóa user bị từ chối
         await db.users.delete_one({"_id": ObjectId(user_id)})
         return {"message": "Đã từ chối và xóa user"}
     except Exception as e:
@@ -249,12 +230,10 @@ async def block_user(user_id: str):
     try:
         db = await get_database()
         
-        # Kiểm tra user tồn tại
         existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not existing_user:
             raise HTTPException(status_code=404, detail="User không tồn tại")
         
-        # Cập nhật trạng thái
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {
@@ -274,12 +253,10 @@ async def unblock_user(user_id: str):
     try:
         db = await get_database()
         
-        # Kiểm tra user tồn tại
         existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not existing_user:
             raise HTTPException(status_code=404, detail="User không tồn tại")
         
-        # Cập nhật trạng thái
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {
@@ -298,17 +275,11 @@ async def unblock_user(user_id: str):
 async def get_dashboard_data():
     try:
         db = await get_database()
-        # Get total users
         total_users = await db.users.count_documents({})
-        
-        # Get research statistics
         pending_research = await db.research.count_documents({"status": "pending"})
         approved_research = await db.research.count_documents({"status": "approved"})
-        
-        # Get total RFID cards
         total_rfid = await db.rfid_cards.count_documents({})
         
-        # Get recent activities and format them
         recent_activities_cursor = db.activities.find().sort("timestamp", -1).limit(10)
         recent_activities = []
         async for activity in recent_activities_cursor:
@@ -319,7 +290,6 @@ async def get_dashboard_data():
                 "details": activity["details"],
                 "admin_action": activity.get("admin_action", False)
             }
-            # Convert user_id to string if it exists
             if "user_id" in activity:
                 activity_dict["user_id"] = str(activity["user_id"])
             recent_activities.append(activity_dict)
@@ -338,7 +308,6 @@ async def get_dashboard_data():
 async def get_dashboard_stats():
     try:
         db = await get_database()
-        # Lấy thống kê từ database
         total_students = await db.students.count_documents({})
         total_classes = await db.classes.count_documents({})
         total_users = await db.users.count_documents({})
@@ -356,30 +325,27 @@ async def upload_class_list(upload_data: UploadData):
     try:
         db = await get_database()
         
-        # Kiểm tra xem lớp đã tồn tại chưa
         existing_class = await db.classes.find_one({"name": upload_data.className})
         if existing_class:
             raise HTTPException(status_code=400, detail=f"Lớp {upload_data.className} đã tồn tại")
 
-        # Tạo danh sách học sinh
         students = []
         student_ids = []
         
         for row in upload_data.data:
-            if len(row) >= 2:  # Chỉ cần cột Họ Tên (index 1)
+            if len(row) >= 1:  # Chỉ cần cột Họ Tên (index 0, vì giờ là [ho_ten])
                 student = {
-                    "_id": ObjectId(),  # Tạo ID cho học sinh
-                    "ho_ten": str(row[1]),  # Chỉ lưu Họ Tên
+                    "_id": ObjectId(),
+                    "ho_ten": str(row[0]),  # Lấy từ index 0
+                    "class_name": upload_data.className,
                     "created_at": datetime.utcnow()
                 }
                 students.append(student)
                 student_ids.append(student["_id"])
 
-        # Lưu thông tin học sinh
         if students:
             await db.students.insert_many(students)
             
-            # Tạo lớp mới và liên kết với học sinh
             class_data = {
                 "name": upload_data.className,
                 "student_ids": student_ids,
@@ -399,9 +365,6 @@ async def upload_class_list(upload_data: UploadData):
 
 @router.get("/classes", response_model=List[ClassResponse])
 async def get_classes():
-    """
-    Lấy danh sách tất cả các lớp
-    """
     try:
         db = await get_database()
         classes = await db.classes.find().to_list(None)
@@ -420,21 +383,15 @@ async def get_classes():
 
 @router.get("/classes/{class_id}/students", response_model=List[StudentResponse])
 async def get_students_in_class(class_id: str):
-    """
-    Lấy danh sách sinh viên trong một lớp
-    """
     try:
         db = await get_database()
         
-        # Kiểm tra lớp tồn tại
         class_obj = await db.classes.find_one({"_id": ObjectId(class_id)})
         if not class_obj:
             raise HTTPException(status_code=404, detail="Lớp không tồn tại")
         
-        # Lấy danh sách student_ids
         student_ids = [ObjectId(student_id) for student_id in class_obj["student_ids"]]
         
-        # Lấy thông tin sinh viên
         students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
         
         formatted_students = []
@@ -442,7 +399,8 @@ async def get_students_in_class(class_id: str):
             formatted_students.append({
                 "id": str(student["_id"]),
                 "ho_ten": student["ho_ten"],
-                "rfid_code": student.get("rfid_code")
+                "rfid_code": student.get("rfid_code"),
+                "class_name": student.get("class_name")
             })
         
         return formatted_students
@@ -454,12 +412,10 @@ async def update_student_rfid(student_id: str, request: UpdateRfidRequest, curre
     try:
         db = await get_database()
         
-        # Kiểm tra sinh viên tồn tại
         student = await db.students.find_one({"_id": ObjectId(student_id)})
         if not student:
             raise HTTPException(status_code=404, detail="Sinh viên không tồn tại")
         
-        # Cập nhật mã RFID
         update_data = {
             "rfid_code": request.rfid_code,
             "updated_at": datetime.utcnow()

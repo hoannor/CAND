@@ -7,12 +7,20 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "research_db"
     
     # JWT settings
-    SECRET_KEY: str = "hoan7203"  # Thay đổi secret key này trong production
+    SECRET_KEY: str = "hoan7203"  # Thay bằng khóa mạnh hơn trong production
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS settings
-    CORS_ORIGINS: list = ["*"]
+    CORS_ORIGINS: list = [
+        "http://localhost",
+        "http://localhost:8000",
+        "http://localhost:8888",  # Thêm cổng bạn đang dùng
+        "http://127.0.0.1",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8888",  # Thêm cổng bạn đang dùng
+        "*"
+    ]
     CORS_CREDENTIALS: bool = True
     CORS_METHODS: list = ["*"]
     CORS_HEADERS: list = ["*"]

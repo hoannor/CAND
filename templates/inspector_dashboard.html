@@ -87,6 +87,7 @@
                             <thead>
                                 <tr>
                                     <th>Tên sinh viên</th>
+                                    <th>Tên lớp</th>
                                     <th>Mã RFID</th>
                                     <th>Trạng thái</th>
                                 </tr>
@@ -165,17 +166,7 @@
                 if (response.ok) {
                     students = await response.json();
                     console.log('Students loaded:', students);
-                    const tbody = document.getElementById('student-list');
-                    tbody.innerHTML = students.map(student => {
-                        const statusClass = student.status === "Đang ra ngoài" ? "status-outside" : "status-inside";
-                        return `
-                            <tr>
-                                <td>${student.ho_ten}</td>
-                                <td>${student.rfid_code}</td>
-                                <td class="${statusClass}">${student.status}</td>
-                            </tr>
-                        `;
-                    }).join('') || '<tr><td class="text-center" colspan="3">Không có sinh viên nào</td></tr>';
+                    updateStudentTable();
                 } else {
                     console.error('Failed to load students:', response.status, response.statusText);
                     showAlert('Không thể tải danh sách sinh viên', 'danger');
@@ -184,6 +175,28 @@
                 console.error('Error loading student list:', error);
                 showAlert('Không thể tải danh sách sinh viên', 'danger');
             }
+        }
+
+        function updateStudentTable() {
+            // Sắp xếp sinh viên: "Đang ra ngoài" lên đầu
+            students.sort((a, b) => {
+                if (a.status === "Đang ra ngoài" && b.status !== "Đang ra ngoài") return -1;
+                if (a.status !== "Đang ra ngoài" && b.status === "Đang ra ngoài") return 1;
+                return 0;
+            });
+
+            const tbody = document.getElementById('student-list');
+            tbody.innerHTML = students.map(student => {
+                const statusClass = student.status === "Đang ra ngoài" ? "status-outside" : "status-inside";
+                return `
+                    <tr>
+                        <td>${student.ho_ten}</td>
+                        <td>${student.class_name || 'Chưa có'}</td>
+                        <td>${student.rfid_code || 'Chưa có'}</td>
+                        <td class="${statusClass}">${student.status}</td>
+                    </tr>
+                `;
+            }).join('') || '<tr><td class="text-center" colspan="4">Không có sinh viên nào</td></tr>';
         }
 
         async function cleanupSerialResources() {
@@ -462,18 +475,7 @@
                     console.log('Cập nhật trạng thái thành công:', studentName, newStatus);
                     const student = students.find(s => s.id === studentId);
                     student.status = newStatus;
-                    const tbody = document.getElementById('student-list');
-                    tbody.innerHTML = students.map(student => {
-                        const statusClass = student.status === "Đang ra ngoài" ? "status-outside" : "status-inside";
-                        return `
-                            <tr>
-                                <td>${student.ho_ten}</td>
-                                <td>${student.rfid_code}</td>
-                                <td class="${statusClass}">${student.status}</td>
-                            </tr>
-                        `;
-                    }).join('') || '<tr><td class="text-center" colspan="3">Không có sinh viên nào</td></tr>';
-
+                    updateStudentTable(); // Cập nhật bảng với sắp xếp mới
                     console.log('Gửi lệnh mở cổng...');
                     const success = await sendSerialCommand('OPEN_GATE');
                     if (success) {
@@ -511,5 +513,3 @@
             setTimeout(() => alertDiv.remove(), 5000);
         }
     </script>
-</body>
-</html>

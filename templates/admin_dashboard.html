@@ -32,7 +32,6 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0 sidebar">
                 <div class="p-3">
                     <h4 class="text-white">Admin Panel</h4>
@@ -57,9 +56,7 @@
                 </div>
             </div>
 
-            <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content">
-                <!-- Top Navigation -->
                 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
                     <div class="container-fluid">
                         <span class="navbar-brand">Admin Dashboard</span>
@@ -70,7 +67,6 @@
                     </div>
                 </nav>
 
-                <!-- Upload Excel Section -->
                 <div class="card" id="upload-excel-section" style="display: none;">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Upload Danh sách Lớp</h5>
@@ -114,7 +110,6 @@
                     </div>
                 </div>
 
-                <!-- User Management Section -->
                 <div class="card" id="users-section" style="display: none;">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Quản lý Người dùng</h5>
@@ -124,7 +119,6 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <!-- Pending Users Column -->
                             <div class="col-md-4">
                                 <div class="card h-100">
                                     <div class="card-header bg-warning text-white">
@@ -148,7 +142,6 @@
                                 </div>
                             </div>
 
-                            <!-- Active Users Column -->
                             <div class="col-md-4">
                                 <div class="card h-100">
                                     <div class="card-header bg-success text-white">
@@ -172,7 +165,6 @@
                                 </div>
                             </div>
 
-                            <!-- Blocked Users Column -->
                             <div class="col-md-4">
                                 <div class="card h-100">
                                     <div class="card-header bg-danger text-white">
@@ -199,21 +191,17 @@
                     </div>
                 </div>
 
-                <!-- Student Management Section -->
                 <div class="card" id="students-section">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Quản lý Sinh viên</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Class List -->
                         <div class="class-list">
                             <h5>Danh sách Lớp</h5>
                             <div class="list-group" id="class-list">
-                                <!-- Classes will be populated here -->
                             </div>
                         </div>
 
-                        <!-- Student List -->
                         <div class="student-list">
                             <h5>Danh sách Sinh viên</h5>
                             <div class="table-responsive">
@@ -226,7 +214,6 @@
                                         </tr>
                                     </thead>
                                     <tbody id="student-list">
-                                        <!-- Students will be populated here -->
                                     </tbody>
                                 </table>
                             </div>
@@ -234,7 +221,6 @@
                     </div>
                 </div>
 
-                <!-- Add User Modal -->
                 <div class="modal fade" id="addUserModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -275,7 +261,6 @@
                     </div>
                 </div>
 
-                <!-- Edit User Modal -->
                 <div class="modal fade" id="editUserModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -313,7 +298,6 @@
                     </div>
                 </div>
 
-                <!-- Edit RFID Modal -->
                 <div class="modal fade" id="editRfidModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -355,7 +339,6 @@
         let port = null;
         let reader = null;
 
-        // Kiểm tra token khi tải trang
         document.addEventListener('DOMContentLoaded', async function() {
             const token = localStorage.getItem('access_token');
             const userRole = localStorage.getItem('user_role');
@@ -365,7 +348,6 @@
                 return;
             }
 
-            // Hiển thị email admin
             const adminEmail = document.getElementById('admin-email');
             try {
                 const response = await fetch('/api/auth/me', {
@@ -381,14 +363,10 @@
                 console.error('Error fetching admin info:', error);
             }
 
-            // Load user data ngay khi vào trang
             await loadUsers();
-            
-            // Hiển thị section mặc định (students)
             showSection('students');
         });
 
-        // Hàm đăng xuất
         function logout() {
             localStorage.removeItem('access_token');
             localStorage.removeItem('user_role');
@@ -396,7 +374,6 @@
             window.location.href = '/';
         }
 
-        // Xử lý upload Excel
         document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             const token = localStorage.getItem('access_token');
@@ -414,7 +391,6 @@
                 return;
             }
 
-            // Đọc file Excel và chuyển đổi thành dữ liệu JSON
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
@@ -423,10 +399,16 @@
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
 
-                    // Bỏ qua dòng đầu tiên (header)
                     const dataWithoutHeader = jsonData.slice(1);
+                    const formattedData = dataWithoutHeader
+                        .filter(row => Array.isArray(row) && row.length > 1 && row[1])
+                        .map(row => [row[1]]);  // Chuyển thành danh sách [ho_ten]
 
-                    // Gửi dữ liệu lên server
+                    if (formattedData.length === 0) {
+                        showAlert('Không có dữ liệu hợp lệ trong file Excel', 'danger');
+                        return;
+                    }
+
                     const response = await fetch('/api/admin/upload-class', {
                         method: 'POST',
                         headers: {
@@ -435,7 +417,7 @@
                         },
                         body: JSON.stringify({
                             className: className,
-                            data: dataWithoutHeader
+                            data: formattedData
                         })
                     });
 
@@ -446,7 +428,6 @@
                         if (result.preview) {
                             showPreview(result.preview);
                         }
-                        // Reset form
                         document.getElementById('uploadForm').reset();
                     } else {
                         throw new Error(result.detail || 'Upload thất bại');
@@ -465,7 +446,6 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Thêm event listener cho input file để xem trước
         document.getElementById('excelFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) {
@@ -480,7 +460,6 @@
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
                     
-                    // Bỏ qua dòng header và hiển thị preview
                     const dataWithoutHeader = jsonData.slice(1);
                     showPreview(dataWithoutHeader);
                 } catch (error) {
@@ -497,7 +476,6 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Cập nhật hàm showPreview để chỉ hiển thị Họ Tên
         function showPreview(data) {
             const tbody = document.getElementById('previewBody');
             if (!data || !data.length) {
@@ -519,7 +497,6 @@
             }).join('');
         }
 
-        // Hàm hiển thị section
         function showSection(sectionId) {
             document.querySelectorAll('.card').forEach(section => {
                 if (section.id && section.id.endsWith('-section')) {
@@ -544,7 +521,6 @@
             });
         }
 
-        // Handle navigation
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -556,7 +532,6 @@
             });
         });
 
-        // Load classes
         async function loadClasses() {
             try {
                 const response = await fetch('/api/admin/classes', {
@@ -583,7 +558,6 @@
             }
         }
 
-        // Load students for a class
         async function loadStudents(classId) {
             currentClassId = classId;
             try {
@@ -616,7 +590,6 @@
             }
         }
 
-        // Edit RFID
         function editRfid(studentId, hoTen, rfidCode) {
             const modal = new bootstrap.Modal(document.getElementById('editRfidModal'));
             const form = document.getElementById('editRfidForm');
@@ -626,9 +599,6 @@
             modal.show();
         }
 
-        // Scan RFID using Web Serial API
-
-        // Scan RFID using Web Serial API
         async function scanRfid() {
             try {
                 if (!('serial' in navigator)) {
@@ -654,8 +624,8 @@
                 console.log('Bắt đầu đọc dữ liệu từ Arduino...');
 
                 let attempts = 0;
-                const maxAttempts = 30; // Chờ tối đa 30 giây (1 lần đọc mỗi giây)
-                let accumulatedData = ''; // Tích lũy dữ liệu từ nhiều lần đọc
+                const maxAttempts = 30;
+                let accumulatedData = '';
 
                 while (attempts < maxAttempts) {
                     const { value, done } = await reader.read();
@@ -670,13 +640,12 @@
 
                     if (value) {
                         const text = new TextDecoder().decode(value);
-                        accumulatedData += text; // Tích lũy dữ liệu
+                        accumulatedData += text;
                         console.log('Dữ liệu nhận được (tích lũy):', accumulatedData);
 
-                        // Tìm dòng chứa "RFID:" trong dữ liệu tích lũy
                         const lines = accumulatedData.split('\n');
                         for (let line of lines) {
-                            line = line.trim(); // Loại bỏ ký tự trắng và xuống dòng
+                            line = line.trim();
                             if (line.includes('RFID:')) {
                                 const rfidCode = line.split('RFID:')[1]?.trim();
                                 if (rfidCode) {
@@ -691,7 +660,7 @@
 
                     attempts++;
                     console.log(`Lần thử ${attempts}/${maxAttempts}...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Chờ 1 giây trước khi đọc lại
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
 
                 showAlert('Không nhận được mã RFID. Vui lòng kiểm tra Arduino và thử lại.', 'danger');
@@ -709,7 +678,6 @@
             }
         }
 
-        // Update RFID
         async function updateRfid() {
             const form = document.getElementById('editRfidForm');
             const studentId = form.studentId.value;
@@ -740,7 +708,7 @@
                     showAlert('Lưu mã RFID thành công', 'success');
                     const modal = bootstrap.Modal.getInstance(document.getElementById('editRfidModal'));
                     modal.hide();
-                    loadStudents(currentClassId); // Tải lại danh sách sinh viên để cập nhật giao diện
+                    loadStudents(currentClassId);
                 } else {
                     const error = await response.json();
                     showAlert(error.detail || 'Không thể lưu mã RFID', 'danger');
@@ -750,7 +718,6 @@
             }
         }
 
-        // Load users data
         async function loadUsers() {
             try {
                 const response = await fetch('/api/admin/users', {
@@ -777,7 +744,6 @@
             }
         }
 
-        // Hàm chuyển đổi vai trò thành tên hiển thị
         function getRoleDisplayName(role) {
             const roleNames = {
                 'researcher': 'Người đăng ký phiếu',
@@ -788,7 +754,6 @@
             return roleNames[role] || role;
         }
 
-        // Update user tables
         function updateUserTables(users) {
             const pendingUsers = users.filter(user => user.status === 'pending');
             const activeUsers = users.filter(user => user.status === 'active');
@@ -847,7 +812,6 @@
             `).join('') || '<tr><td colspan="4" class="text-center">Không có người dùng bị khóa</td></tr>';
         }
 
-        // Add new user
         async function addUser(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -875,7 +839,6 @@
             }
         }
 
-        // Approve user
         async function approveUser(userId) {
             try {
                 const response = await fetch(`/api/admin/users/${userId}/approve`, {
@@ -898,7 +861,6 @@
             }
         }
 
-        // Reject user
         async function rejectUser(userId) {
             try {
                 const response = await fetch(`/api/admin/users/${userId}/reject`, {
@@ -921,7 +883,6 @@
             }
         }
 
-        // Block user
         async function blockUser(userId) {
             try {
                 const response = await fetch(`/api/admin/users/${userId}/block`, {
@@ -944,7 +905,6 @@
             }
         }
 
-        // Unblock user
         async function unblockUser(userId) {
             try {
                 const response = await fetch(`/api/admin/users/${userId}/unblock`, {
@@ -967,7 +927,6 @@
             }
         }
 
-        // Delete user
         async function deleteUser(userId) {
             if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
                 return;
@@ -994,7 +953,6 @@
             }
         }
 
-        // Thêm hàm hiển thị thông báo
         function showAlert(message, type) {
             const alertDiv = document.getElementById('alertMessage') || document.createElement('div');
             alertDiv.id = 'alertMessage';

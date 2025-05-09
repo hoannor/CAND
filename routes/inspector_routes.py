@@ -118,7 +118,7 @@ async def inspect_research(research_id: str):
 @router.get("/students")
 async def get_students_from_list_check():
     """
-    Lấy danh sách tên, mã RFID và trạng thái của sinh viên từ collection list_check
+    Lấy danh sách tên, mã RFID, trạng thái và tên lớp của sinh viên từ collection list_check
     Note: Bản ghi trong list_check sẽ tự động bị xóa sau 24 giờ kể từ approved_at
     nhờ TTL Index được thiết lập trên trường approved_at.
     """
@@ -141,7 +141,7 @@ async def get_students_from_list_check():
         # Lấy thông tin sinh viên từ collection students
         students = await db.students.find({"_id": {"$in": student_ids}}).to_list(None)
         
-        # Chuyển đổi ObjectId thành string và lấy tên, mã RFID, trạng thái
+        # Chuyển đổi ObjectId thành string và lấy tên, mã RFID, trạng thái, tên lớp
         student_list = []
         for student in students:
             student["_id"] = str(student["_id"])
@@ -156,7 +156,8 @@ async def get_students_from_list_check():
                 "id": student["_id"],
                 "ho_ten": student.get("ho_ten", "Không có tên"),
                 "rfid_code": student.get("rfid_code", "Chưa có mã RFID"),
-                "status": student["status"]
+                "status": student["status"],
+                "class_name": student.get("class_name", "Chưa có lớp")  # Thêm class_name
             })
         
         return student_list

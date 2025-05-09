@@ -48,14 +48,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 # Add middlewares
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)  # Sử dụng SECRET_KEY từ config
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=settings.CORS_CREDENTIALS,  # Sử dụng từ config
     allow_methods=settings.CORS_METHODS,
     allow_headers=settings.CORS_HEADERS,
+    expose_headers=["*"],  # Thêm để đảm bảo trả về tất cả tiêu đề
 )
 
 async def get_current_user_from_token(request: Request):
